@@ -37,16 +37,17 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	_, err = NewQuestionRepo(csv)
+	repo, err := NewQuestionRepo(csv)
 	if err != nil {
 		log.Fatal(err)
 	}
+	lobby := NewLobby(repo)
+	go lobby.Run()
 
 	upgrader := websocket.Upgrader{
 		ReadBufferSize:  1024,
 		WriteBufferSize: 1024,
 	}
-
 	http.Handle("/js/", http.StripPrefix("/js/", http.FileServer(http.Dir("js"))))
 	http.HandleFunc("/", withLog(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/" {
@@ -75,12 +76,12 @@ func main() {
 	}))
 
 	http.HandleFunc("/ws", withLog(func(w http.ResponseWriter, r *http.Request) {
-		_, err := upgrader.Upgrade(w, r, nil)
+		conn, err := upgrader.Upgrade(w, r, nil)
 		if err != nil {
 			log.Println("Upgrade:", err)
 			return
 		}
-		// TODO: handle connection
+		lobby.Handle(conn)
 	}))
 
 	if err := http.ListenAndServe(":"+port, nil); err != nil {
