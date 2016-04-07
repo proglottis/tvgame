@@ -29,6 +29,7 @@ func NewQuestionRepo(r io.Reader) (*QuestionRepo, error) {
 	repo := &QuestionRepo{}
 	answerSet := make(map[string]struct{})
 	csv := csv.NewReader(r)
+	csv.FieldsPerRecord = 2
 	for {
 		row, err := csv.Read()
 		if err == io.EOF {
@@ -36,9 +37,6 @@ func NewQuestionRepo(r io.Reader) (*QuestionRepo, error) {
 		}
 		if err != nil {
 			return nil, err
-		}
-		if len(row) < 2 {
-			return nil, errors.New("Not enough columns")
 		}
 		question := &Question{Text: row[0], Multiplier: 1}
 		answer := row[1]
