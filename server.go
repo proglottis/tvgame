@@ -20,7 +20,15 @@ func generateCode() string {
 }
 
 type RoomMessage struct {
-	Code string
+	Type   string
+	Code   string      `json:",omitempty"`
+	Player *RoomPlayer `json:",omitempty"`
+}
+
+type RoomPlayer struct {
+	Name  string
+	Score int
+	Conn  *websocket.Conn `json:"-"`
 }
 
 type Room struct {
@@ -28,8 +36,8 @@ type Room struct {
 	Game      *Game
 	Host      *websocket.Conn
 	LobbyDone chan<- string
-	Join      chan *websocket.Conn
-	Players   []*websocket.Conn
+	Join      chan *RoomPlayer
+	Players   []*RoomPlayer
 }
 
 func NewRoom(repo *QuestionRepo, host *websocket.Conn) *Room {
@@ -37,27 +45,29 @@ func NewRoom(repo *QuestionRepo, host *websocket.Conn) *Room {
 		Code: generateCode(),
 		Game: NewGame(repo),
 		Host: host,
-		Join: make(chan *websocket.Conn),
+		Join: make(chan *RoomPlayer),
 	}
 }
 
 func (r *Room) Run() {
-	r.Host.WriteJSON(RoomMessage{Code: r.Code})
+	r.Host.WriteJSON(RoomMessage{Type: "start", Code: r.Code})
 	for {
 		select {
-		case conn, ok := <-r.Join:
+		case player, ok := <-r.Join:
 			if !ok {
 				r.Join = nil
 				continue
 			}
 			log.Printf("Room: Join request")
-			r.Players = append(r.Players, conn)
+			r.Players = append(r.Players, player)
+			r.Host.WriteJSON(RoomMessage{Type: "join", Player: player})
 		}
 	}
 }
 
 type LobbyMessage struct {
 	Type string
+	Name string
 	Code string
 }
 
@@ -66,14 +76,14 @@ type Lobby struct {
 	done <-chan string
 
 	mu    sync.RWMutex
-	rooms map[string]chan<- *websocket.Conn
+	rooms map[string]chan<- *RoomPlayer
 }
 
 func NewLobby(repo *QuestionRepo) *Lobby {
 	return &Lobby{
 		Repo:  repo,
 		done:  make(chan string),
-		rooms: make(map[string]chan<- *websocket.Conn),
+		rooms: make(map[string]chan<- *RoomPlayer),
 	}
 }
 
@@ -104,7 +114,7 @@ func (l *Lobby) detatch(code string) {
 	log.Printf("Lobby: Detached room: %s", code)
 }
 
-func (l *Lobby) join(conn *websocket.Conn, code string) {
+func (l *Lobby) join(conn *websocket.Conn, name, code string) {
 	l.mu.RLock()
 	defer l.mu.RUnlock()
 	room, ok := l.rooms[code]
@@ -113,7 +123,7 @@ func (l *Lobby) join(conn *websocket.Conn, code string) {
 		conn.Close()
 		return
 	}
-	room <- conn
+	room <- &RoomPlayer{Name: name, Conn: conn}
 }
 
 func (l *Lobby) Handle(conn *websocket.Conn) {
@@ -127,7 +137,7 @@ func (l *Lobby) Handle(conn *websocket.Conn) {
 	case "create":
 		l.create(conn)
 	case "join":
-		l.join(conn, msg.Code)
+		l.join(conn, msg.Name, msg.Code)
 	default:
 		log.Printf("Lobby: Unknown message type: %s", msg.Type)
 		conn.Close()

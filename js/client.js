@@ -16,7 +16,7 @@ $(function() {
 
     conn.onopen = function(event) {
       appendLog("Connection opened");
-      conn.send(JSON.stringify({Type: 'join', Code: $('input[name=code]').val()}))
+      conn.send(JSON.stringify({Type: 'join', Name: $('input[name=name]').val(), Code: $('input[name=code]').val()}))
     };
 
     conn.onmessage = function(event) {
