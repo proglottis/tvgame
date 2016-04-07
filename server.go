@@ -5,9 +5,13 @@ import (
 	"encoding/hex"
 	"log"
 	"sync"
-
-	"github.com/gorilla/websocket"
 )
+
+type JSONConn interface {
+	ReadJSON(v interface{}) error
+	WriteJSON(v interface{}) error
+	Close() error
+}
 
 func generateCode() string {
 	var buf [2]byte
@@ -28,19 +32,19 @@ type RoomMessage struct {
 type RoomPlayer struct {
 	Name  string
 	Score int
-	Conn  *websocket.Conn `json:"-"`
+	Conn  JSONConn `json:"-"`
 }
 
 type Room struct {
 	Code      string
 	Game      *Game
-	Host      *websocket.Conn
+	Host      JSONConn
 	LobbyDone chan<- string
 	Join      chan *RoomPlayer
 	Players   []*RoomPlayer
 }
 
-func NewRoom(repo *QuestionRepo, host *websocket.Conn) *Room {
+func NewRoom(repo *QuestionRepo, host JSONConn) *Room {
 	return &Room{
 		Code: generateCode(),
 		Game: NewGame(repo),
@@ -93,7 +97,7 @@ func (l *Lobby) Run() {
 	}
 }
 
-func (l *Lobby) create(conn *websocket.Conn) {
+func (l *Lobby) create(conn JSONConn) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	room := NewRoom(l.Repo, conn)
@@ -114,7 +118,7 @@ func (l *Lobby) detatch(code string) {
 	log.Printf("Lobby: Detached room: %s", code)
 }
 
-func (l *Lobby) join(conn *websocket.Conn, name, code string) {
+func (l *Lobby) join(conn JSONConn, name, code string) {
 	l.mu.RLock()
 	defer l.mu.RUnlock()
 	room, ok := l.rooms[code]
@@ -126,7 +130,7 @@ func (l *Lobby) join(conn *websocket.Conn, name, code string) {
 	room <- &RoomPlayer{Name: name, Conn: conn}
 }
 
-func (l *Lobby) Handle(conn *websocket.Conn) {
+func (l *Lobby) Handle(conn JSONConn) {
 	// runs within the HTTP handler go routine
 	var msg LobbyMessage
 	if err := conn.ReadJSON(&msg); err != nil {
