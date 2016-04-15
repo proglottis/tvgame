@@ -6,14 +6,31 @@ import (
 )
 
 const (
-	badFile         = `Apple?`
-	twoQuestionFile = `Fruit?,Apple
-	Vegetable?,Carrot`
+	badFile      = `A?`
+	questionFile = `A?,Apple
+B?,Banana
+C?,Carrot
+D?,Date
+F?,Fig
+G?,Grape
+K?,Kiwi
+L?,Lemon
+M?,Mango
+O?,Orange`
+	questionFileLines = 10
 )
 
 type testPlayer struct {
 	Name string
 }
+
+func (testPlayer) RequestAnswer(question string)                 {}
+func (testPlayer) RequestVote(question string, answers []string) {}
+
+type testHost struct{}
+
+func (testHost) Joined(player Player)        {}
+func (testHost) Question(question *Question) {}
 
 func TestQuestionRepo_bad_format(t *testing.T) {
 	buf := bytes.NewBufferString(badFile)
@@ -24,42 +41,36 @@ func TestQuestionRepo_bad_format(t *testing.T) {
 }
 
 func TestQuestionRepo_Questions(t *testing.T) {
-	buf := bytes.NewBufferString(twoQuestionFile)
-	repo, err := NewQuestionRepo(buf)
-	if err != nil {
-		t.Fatal(err)
-	}
-	questions := repo.Questions(make([]*Question, 0, 1))
-	if len(questions) != 1 {
-		t.Errorf("Expected 1 question")
-	}
-	questions = repo.Questions(make([]*Question, 0, 2))
-	if len(questions) != 2 {
-		t.Errorf("Expected 2 questions")
-	}
-	questions = repo.Questions(make([]*Question, 0, 3))
-	if len(questions) != 2 {
-		t.Errorf("Expected 2 questions")
+	repo := newRepo(t)
+	for _, test := range []struct {
+		N        int
+		Expected int
+	}{
+		{N: 1, Expected: 1},
+		{N: questionFileLines, Expected: questionFileLines},
+		{N: questionFileLines + 1, Expected: questionFileLines},
+	} {
+		questions := repo.Questions(make([]*Question, 0, test.N))
+		if len(questions) != test.Expected {
+			t.Errorf("Expected %d questions, got %d", test.Expected, len(questions))
+		}
 	}
 }
 
 func TestQuestionRepo_Answers(t *testing.T) {
-	buf := bytes.NewBufferString(twoQuestionFile)
-	repo, err := NewQuestionRepo(buf)
-	if err != nil {
-		t.Fatal(err)
-	}
-	answers := repo.Answers(make([]string, 0, 1))
-	if len(answers) != 1 {
-		t.Errorf("Expected 1 answer")
-	}
-	answers = repo.Answers(make([]string, 0, 2))
-	if len(answers) != 2 {
-		t.Errorf("Expected 2 answers")
-	}
-	answers = repo.Answers(make([]string, 0, 3))
-	if len(answers) != 2 {
-		t.Errorf("Expected 2 answers")
+	repo := newRepo(t)
+	for _, test := range []struct {
+		N        int
+		Expected int
+	}{
+		{N: 1, Expected: 1},
+		{N: questionFileLines, Expected: questionFileLines},
+		{N: questionFileLines + 1, Expected: questionFileLines},
+	} {
+		answers := repo.Answers(make([]*Answer, 0, test.N))
+		if len(answers) != test.Expected {
+			t.Errorf("Expected %d answers, got %d", test.Expected, len(answers))
+		}
 	}
 }
 
@@ -174,4 +185,49 @@ func TestVoteCollector_Complete(t *testing.T) {
 	if !collector.Complete() {
 		t.Errorf("Expected to be complete")
 	}
+}
+
+func TestGame_p1_always_wins(t *testing.T) {
+	host := &testHost{}
+	p1 := &testPlayer{Name: "B1"}
+	p2 := &testPlayer{Name: "B2"}
+	repo := newRepo(t)
+	game := NewGame(repo, host)
+	if len(game.Questions) != 7 {
+		t.Fatalf("Expected 7 questions")
+	}
+	game.AddPlayer(p1, p2)
+	game.Begin()
+	for i := 0; i < 7; i++ {
+		if err := game.Collect(p1, "Moose"); err != nil {
+			t.Fatalf("%s", err)
+		}
+		if err := game.Collect(p2, "Monkey"); err != nil {
+			t.Fatalf("%s", err)
+		}
+		game.Vote()
+		if err := game.Collect(p1, game.Current().CorrectAnswer().Text); err != nil {
+			t.Fatalf("%s", err)
+		}
+		if err := game.Collect(p2, "Moose"); err != nil {
+			t.Fatalf("%s", err)
+		}
+		game.Stop()
+		game.Next()
+	}
+	if game.Players[p1] != 30000 {
+		t.Errorf("p1 expected 30000 points, got %d", game.Players[p1])
+	}
+	if game.Players[p2] != 0 {
+		t.Errorf("p2 expected 0 points, got %d", game.Players[p2])
+	}
+}
+
+func newRepo(t *testing.T) *QuestionRepo {
+	buf := bytes.NewBufferString(questionFile)
+	repo, err := NewQuestionRepo(buf)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return repo
 }

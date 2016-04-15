@@ -81,7 +81,7 @@ func main() {
 			log.Println("Upgrade:", err)
 			return
 		}
-		lobby.Handle(conn)
+		lobby.Handle(NewConn(conn))
 	}))
 
 	if err := http.ListenAndServe(":"+port, nil); err != nil {

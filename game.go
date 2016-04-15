@@ -19,9 +19,14 @@ var (
 	OwnAnswerError = errors.New("Choose own answer")
 )
 
+type record struct {
+	Question string
+	Answer   string
+}
+
 type QuestionRepo struct {
-	questions []*Question
-	answers   []string
+	records []record
+	answers []string
 }
 
 func NewQuestionRepo(r io.Reader) (*QuestionRepo, error) {
@@ -38,11 +43,9 @@ func NewQuestionRepo(r io.Reader) (*QuestionRepo, error) {
 		if err != nil {
 			return nil, err
 		}
-		question := &Question{Text: row[0], Multiplier: 1}
-		answer := row[1]
-		question.Answers = append(question.Answers, &Answer{Text: answer, Correct: true})
-		repo.questions = append(repo.questions, question)
-		answerSet[answer] = struct{}{}
+		record := record{Question: row[0], Answer: row[1]}
+		repo.records = append(repo.records, record)
+		answerSet[record.Answer] = struct{}{}
 	}
 	repo.answers = make([]string, 0, len(answerSet))
 	for answer := range answerSet {
@@ -51,31 +54,44 @@ func NewQuestionRepo(r io.Reader) (*QuestionRepo, error) {
 	return repo, nil
 }
 
-func (r *QuestionRepo) Questions(questions []*Question) []*Question {
-	set := map[int]struct{}{}
-	n := cap(questions) - len(questions)
-	for len(set) < n && len(set) < len(r.questions) {
-		set[rand.Intn(len(r.questions))] = struct{}{}
+func sample(n, population int) map[int]struct{} {
+	s := map[int]struct{}{}
+	for len(s) < n && len(s) < population {
+		s[rand.Intn(population)] = struct{}{}
 	}
+	return s
+}
+
+func (r *QuestionRepo) Questions(questions []*Question) []*Question {
+	set := sample(cap(questions)-len(questions), len(r.records))
 	for i := range set {
-		questions = append(questions, r.questions[i])
+		record := r.records[i]
+		questions = append(questions, &Question{
+			Text:       record.Question,
+			Multiplier: 1,
+			Answers:    []*Answer{{Text: record.Answer, Correct: true}},
+		})
 	}
 	return questions
 }
 
-func (r *QuestionRepo) Answers(answers []string) []string {
-	set := map[int]struct{}{}
-	n := cap(answers) - len(answers)
-	for len(set) < n && len(set) < len(r.answers) {
-		set[rand.Intn(len(r.answers))] = struct{}{}
-	}
+func (r *QuestionRepo) Answers(answers []*Answer) []*Answer {
+	set := sample(cap(answers)-len(answers), len(r.answers))
 	for i := range set {
-		answers = append(answers, r.answers[i])
+		answers = append(answers, &Answer{Text: r.answers[i]})
 	}
 	return answers
 }
 
-type Player interface{}
+type Host interface {
+	Joined(player Player)
+	Question(question *Question)
+}
+
+type Player interface {
+	RequestAnswer(question string)
+	RequestVote(question string, answers []string)
+}
 
 type Answer struct {
 	Correct bool
@@ -97,6 +113,15 @@ type Question struct {
 	Text       string
 	Multiplier int
 	Answers    []*Answer
+}
+
+func (q *Question) CorrectAnswer() *Answer {
+	for _, answer := range q.Answers {
+		if answer.Correct {
+			return answer
+		}
+	}
+	return nil
 }
 
 type Result struct {
@@ -131,6 +156,16 @@ func NewResultSet(q *Question) *ResultSet {
 	return r
 }
 
+type NonCollector struct {
+}
+
+func (c NonCollector) Collect(player Player, text string) error {
+	return CompletedError
+}
+
+func (c NonCollector) Stop() {
+}
+
 type AnswerCollector struct {
 	Question  *Question
 	Remaining int
@@ -160,6 +195,10 @@ func (c *AnswerCollector) Collect(player Player, text string) error {
 
 func (c *AnswerCollector) Complete() bool {
 	return c.Remaining <= 0
+}
+
+func (c *AnswerCollector) Stop() {
+	c.Remaining = 0
 }
 
 type VoteCollector struct {
@@ -195,16 +234,29 @@ func (c *VoteCollector) Complete() bool {
 	return c.Remaining <= 0
 }
 
-type Game struct {
-	Questions []*Question
-	current   int
-	players   map[Player]int
+func (c *VoteCollector) Stop() {
+	c.Remaining = 0
 }
 
-func NewGame(repo *QuestionRepo) *Game {
+type Collector interface {
+	Collect(player Player, text string) error
+	Stop()
+}
+
+type Game struct {
+	Host      Host
+	Questions []*Question
+	Players   map[Player]int
+	current   int
+	collector Collector
+}
+
+func NewGame(repo *QuestionRepo, host Host) *Game {
 	game := &Game{
+		Host:      host,
 		Questions: make([]*Question, 0, 7),
-		players:   make(map[Player]int),
+		Players:   make(map[Player]int),
+		collector: NonCollector{},
 	}
 	game.Questions = repo.Questions(game.Questions)
 	for i, question := range game.Questions {
@@ -217,4 +269,72 @@ func NewGame(repo *QuestionRepo) *Game {
 		}
 	}
 	return game
+}
+
+func (g *Game) AddPlayer(players ...Player) {
+	for _, p := range players {
+		g.Players[p] = 0
+		g.Host.Joined(p)
+	}
+}
+
+func (g *Game) broadcastQuestion() {
+	question := g.Current()
+	g.Host.Question(question)
+	for player := range g.Players {
+		player.RequestAnswer(question.Text)
+	}
+}
+
+func (g *Game) broadcastResults(results *ResultSet) {
+}
+
+func (g *Game) complete() {
+}
+
+func (g *Game) Begin() {
+	g.collector = &AnswerCollector{
+		Question:  g.Current(),
+		Remaining: len(g.Players),
+	}
+	g.broadcastQuestion()
+}
+
+func (g *Game) Vote() {
+	g.collector = &VoteCollector{
+		Question:  g.Current(),
+		Remaining: len(g.Players),
+	}
+}
+
+func (g *Game) Collect(player Player, text string) error {
+	return g.collector.Collect(player, text)
+}
+
+func (g *Game) Stop() {
+	g.collector.Stop()
+	results := NewResultSet(g.Current())
+	for _, points := range results.Points {
+		for _, offset := range points {
+			g.Players[offset.Player] += offset.Offset
+		}
+	}
+	g.broadcastResults(results)
+}
+
+func (g *Game) Current() *Question {
+	return g.Questions[g.current]
+}
+
+func (g *Game) Next() {
+	g.current += 1
+	if g.current >= len(g.Questions) {
+		g.complete()
+		return
+	}
+	g.collector = &AnswerCollector{
+		Question:  g.Current(),
+		Remaining: len(g.Players),
+	}
+	g.broadcastQuestion()
 }

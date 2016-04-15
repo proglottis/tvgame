@@ -3,10 +3,9 @@ package main
 import (
 	"crypto/rand"
 	"encoding/hex"
+	"encoding/json"
 	"log"
 	"sync"
-
-	"github.com/gorilla/websocket"
 )
 
 func generateCode() string {
@@ -19,54 +18,117 @@ func generateCode() string {
 	return string(msg[:])
 }
 
+type PlayerText struct {
+	Text   string
+	Player *RoomPlayer `json:"-"`
+}
+
 type RoomMessage struct {
-	Type   string
-	Code   string      `json:",omitempty"`
-	Player *RoomPlayer `json:",omitempty"`
+	Code   string `json:",omitempty"`
+	Player Player `json:",omitempty"`
+}
+
+type RoomHost struct {
+	Conn *Conn
+}
+
+func (h *RoomHost) Joined(player Player) {
+	var err error
+	msg := ConnMessage{Type: "joined"}
+	msg.Data, err = json.Marshal(&RoomMessage{Player: player})
+	if err != nil {
+		panic(err)
+	}
+	h.Conn.Send <- msg
+}
+
+func (h *RoomHost) Question(question *Question) {
 }
 
 type RoomPlayer struct {
-	Name  string
-	Score int
-	Conn  *websocket.Conn `json:"-"`
+	Name string
+	Conn *Conn `json:"-"`
+}
+
+func (p *RoomPlayer) RequestAnswer(question string) {
+}
+
+func (p *RoomPlayer) RequestVote(text string, answers []string) {
 }
 
 type Room struct {
-	Code      string
-	Game      *Game
-	Host      *websocket.Conn
-	LobbyDone chan<- string
-	Join      chan *RoomPlayer
-	Players   []*RoomPlayer
+	Code           string
+	Game           *Game
+	Host           *Conn
+	LobbyDone      chan<- string
+	Join           chan *RoomPlayer
+	playerMessages chan PlayerText
 }
 
-func NewRoom(repo *QuestionRepo, host *websocket.Conn) *Room {
+func NewRoom(repo *QuestionRepo, host *Conn) *Room {
+	h := &RoomHost{Conn: host}
 	return &Room{
 		Code: generateCode(),
-		Game: NewGame(repo),
+		Game: NewGame(repo, h),
 		Host: host,
 		Join: make(chan *RoomPlayer),
 	}
 }
 
 func (r *Room) Run() {
-	r.Host.WriteJSON(RoomMessage{Type: "start", Code: r.Code})
+	var err error
+	msg := ConnMessage{Type: "start"}
+	msg.Data, err = json.Marshal(RoomMessage{Code: r.Code})
+	if err != nil {
+		panic(err)
+	}
+	r.Host.Send <- msg
+
+	var playerMessages chan PlayerText
 	for {
 		select {
+		case msg, ok := <-r.Host.Recv:
+			if !ok {
+				// TODO: host quit
+			}
+			switch msg.Type {
+			case "begin":
+				r.Game.Begin()
+			case "next":
+				r.Game.Next()
+			case "vote":
+				r.Game.Vote()
+			case "stop":
+				r.Game.Stop()
+			}
+		case msg, ok := <-playerMessages:
+			if !ok {
+				playerMessages = nil
+				continue
+			}
+			if err := r.Game.Collect(msg.Player, msg.Text); err != nil {
+				// TODO: send err to player
+			}
 		case player, ok := <-r.Join:
 			if !ok {
 				r.Join = nil
 				continue
 			}
-			log.Printf("Room: Join request")
-			r.Players = append(r.Players, player)
-			r.Host.WriteJSON(RoomMessage{Type: "join", Player: player})
+			r.Game.AddPlayer(player)
+			go func() {
+				for msg := range player.Conn.Recv {
+					var text PlayerText
+					if err := json.Unmarshal(msg.Data, &text); err != nil {
+						panic(err)
+					}
+					r.playerMessages <- text
+				}
+			}()
 		}
 	}
 }
 
 type LobbyMessage struct {
-	Type string
 	Name string
 	Code string
 }
@@ -93,7 +155,7 @@ func (l *Lobby) Run() {
 	}
 }
 
-func (l *Lobby) create(conn *websocket.Conn) {
+func (l *Lobby) create(conn *Conn) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	room := NewRoom(l.Repo, conn)
@@ -114,32 +176,34 @@ func (l *Lobby) detatch(code string) {
 	log.Printf("Lobby: Detached room: %s", code)
 }
 
-func (l *Lobby) join(conn *websocket.Conn, name, code string) {
+func (l *Lobby) join(conn *Conn, name, code string) {
 	l.mu.RLock()
 	defer l.mu.RUnlock()
 	room, ok := l.rooms[code]
 	if !ok {
 		log.Printf("Lobby: No such room to join: %s", code)
-		conn.Close()
+		close(conn.Send)
 		return
 	}
 	room <- &RoomPlayer{Name: name, Conn: conn}
 }
 
-func (l *Lobby) Handle(conn *websocket.Conn) {
+func (l *Lobby) Handle(conn *Conn) {
 	// runs within the HTTP handler go routine
-	var msg LobbyMessage
-	if err := conn.ReadJSON(&msg); err != nil {
-		log.Printf("Lobby: %s", err)
-		conn.Close()
-	}
+	msg := <-conn.Recv
 	switch msg.Type {
 	case "create":
 		l.create(conn)
 	case "join":
-		l.join(conn, msg.Name, msg.Code)
+		var lobby LobbyMessage
+		if err := json.Unmarshal(msg.Data, &lobby); err != nil {
+			log.Printf("Lobby: Unmarshal: %s", err)
+			close(conn.Send)
+			return
+		}
+		l.join(conn, lobby.Name, lobby.Code)
 	default:
 		log.Printf("Lobby: Unknown message type: %s", msg.Type)
-		conn.Close()
+		close(conn.Send)
 	}
 }
