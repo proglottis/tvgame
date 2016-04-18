@@ -23,26 +23,36 @@ type PlayerText struct {
 	Player *RoomPlayer `json:"-"`
 }
 
-type RoomMessage struct {
-	Code   string `json:",omitempty"`
-	Player Player `json:",omitempty"`
-}
-
 type RoomHost struct {
 	Conn *Conn
+}
+
+type joinedMessage struct {
+	Player Player
 }
 
 func (h *RoomHost) Joined(player Player) {
 	var err error
 	msg := ConnMessage{Type: "joined"}
-	msg.Data, err = json.Marshal(&RoomMessage{Player: player})
+	msg.Data, err = json.Marshal(joinedMessage{Player: player})
 	if err != nil {
 		panic(err)
 	}
 	h.Conn.Send <- msg
 }
 
+type questionMessage struct {
+	Question *Question
+}
+
 func (h *RoomHost) Question(question *Question) {
+	var err error
+	msg := ConnMessage{Type: "question"}
+	msg.Data, err = json.Marshal(questionMessage{Question: question})
+	if err != nil {
+		panic(err)
+	}
+	h.Conn.Send <- msg
 }
 
 type RoomPlayer struct {
@@ -50,10 +60,33 @@ type RoomPlayer struct {
 	Conn *Conn `json:"-"`
 }
 
-func (p *RoomPlayer) RequestAnswer(question string) {
+type requestAnswerMessage struct {
+	Text string
+}
+
+func (p *RoomPlayer) RequestAnswer(text string) {
+	var err error
+	msg := ConnMessage{Type: "answer"}
+	msg.Data, err = json.Marshal(requestAnswerMessage{Text: text})
+	if err != nil {
+		panic(err)
+	}
+	p.Conn.Send <- msg
+}
+
+type requestVoteMessage struct {
+	Text    string
+	Answers []string
 }
 
 func (p *RoomPlayer) RequestVote(text string, answers []string) {
+	var err error
+	msg := ConnMessage{Type: "vote"}
+	msg.Data, err = json.Marshal(requestVoteMessage{Text: text, Answers: answers})
+	if err != nil {
+		panic(err)
+	}
+	p.Conn.Send <- msg
 }
 
 type Room struct {
@@ -75,10 +108,14 @@ func NewRoom(repo *QuestionRepo, host *Conn) *Room {
 	}
 }
 
+type roomMessage struct {
+	Code string
+}
+
 func (r *Room) Run() {
 	var err error
-	msg := ConnMessage{Type: "start"}
-	msg.Data, err = json.Marshal(RoomMessage{Code: r.Code})
+	msg := ConnMessage{Type: "create"}
+	msg.Data, err = json.Marshal(roomMessage{Code: r.Code})
 	if err != nil {
 		panic(err)
 	}
@@ -128,7 +165,7 @@ func (r *Room) Run() {
 	}
 }
 
-type LobbyMessage struct {
+type lobbyMessage struct {
 	Name string
 	Code string
 }
@@ -195,7 +232,7 @@ func (l *Lobby) Handle(conn *Conn) {
 	case "create":
 		l.create(conn)
 	case "join":
-		var lobby LobbyMessage
+		var lobby lobbyMessage
 		if err := json.Unmarshal(msg.Data, &lobby); err != nil {
 			log.Printf("Lobby: Unmarshal: %s", err)
 			close(conn.Send)

@@ -25,4 +25,9 @@ $(function() {
   conn.onerror = function(event) {
     appendLog("Error: " + event.data);
   };
+
+  $('form').submit(function(event) {
+    event.preventDefault();
+    conn.send(JSON.stringify({type: "begin"}));
+  });
 });

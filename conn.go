@@ -61,7 +61,6 @@ func (c *Conn) readPump() {
 			}
 			break
 		}
-		log.Println(message)
 		c.Recv <- message
 	}
 }
@@ -80,7 +79,6 @@ func (c *Conn) writePump() {
 				c.ws.WriteMessage(websocket.CloseMessage, []byte{})
 				return
 			}
-			log.Println(message)
 			c.ws.SetWriteDeadline(time.Now().Add(writeWait))
 			if err := c.ws.WriteJSON(&message); err != nil {
 				return
