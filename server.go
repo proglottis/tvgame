@@ -36,7 +36,9 @@ func (h *RoomHost) Joined(player Player) {
 	msg := ConnMessage{Type: "joined"}
 	msg.Data, err = json.Marshal(joinedMessage{Player: player})
 	if err != nil {
-		panic(err)
+		log.Printf("RoomHost: %s", err)
+		close(h.Conn.Send)
+		return
 	}
 	h.Conn.Send <- msg
 }
@@ -50,7 +52,9 @@ func (h *RoomHost) Question(question *Question) {
 	msg := ConnMessage{Type: "question"}
 	msg.Data, err = json.Marshal(questionMessage{Question: question})
 	if err != nil {
-		panic(err)
+		log.Printf("RoomHost: %s", err)
+		close(h.Conn.Send)
+		return
 	}
 	h.Conn.Send <- msg
 }
@@ -59,6 +63,17 @@ type RoomPlayer struct {
 	ID   string
 	Name string
 	Conn *Conn `json:"-"`
+}
+
+func (p *RoomPlayer) SendError(text string) {
+	var err error
+	msg := ConnMessage{Type: "error"}
+	msg.Data, err = json.Marshal(errorMessage{Text: text})
+	if err != nil {
+		log.Printf("RoomPlayer: %s", err)
+		return
+	}
+	p.Conn.Send <- msg
 }
 
 type requestAnswerMessage struct {
@@ -70,7 +85,8 @@ func (p *RoomPlayer) RequestAnswer(text string) {
 	msg := ConnMessage{Type: "answer"}
 	msg.Data, err = json.Marshal(requestAnswerMessage{Text: text})
 	if err != nil {
-		panic(err)
+		log.Printf("RoomPlayer: %s", err)
+		return
 	}
 	p.Conn.Send <- msg
 }
@@ -85,7 +101,8 @@ func (p *RoomPlayer) RequestVote(text string, answers []string) {
 	msg := ConnMessage{Type: "vote"}
 	msg.Data, err = json.Marshal(requestVoteMessage{Text: text, Answers: answers})
 	if err != nil {
-		panic(err)
+		log.Printf("RoomPlayer: %s", err)
+		return
 	}
 	p.Conn.Send <- msg
 }
@@ -128,6 +145,7 @@ func (r *Room) Run() {
 		case msg, ok := <-r.Host.Recv:
 			if !ok {
 				// TODO: host quit
+				continue
 			}
 			switch msg.Type {
 			case "begin":
@@ -145,7 +163,8 @@ func (r *Room) Run() {
 				continue
 			}
 			if err := r.Game.Collect(msg.Player, msg.Text); err != nil {
-				// TODO: send err to player
+				msg.Player.SendError(err.Error())
+				continue
 			}
 		case player, ok := <-r.Join:
 			if !ok {
@@ -153,7 +172,7 @@ func (r *Room) Run() {
 				continue
 			}
 			if err := r.Game.AddPlayer(player); err != nil {
-				// TODO: send err to player
+				player.SendError(err.Error())
 				continue
 			}
 			go func() {
