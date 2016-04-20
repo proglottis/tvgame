@@ -231,20 +231,31 @@ func (l *Lobby) join(conn *Conn, name, code string) {
 
 func (l *Lobby) Handle(conn *Conn) {
 	// runs within the HTTP handler go routine
-	msg := <-conn.Recv
-	switch msg.Type {
-	case "create":
-		l.create(conn)
-	case "join":
-		var lobby lobbyMessage
-		if err := json.Unmarshal(msg.Data, &lobby); err != nil {
-			log.Printf("Lobby: Unmarshal: %s", err)
-			close(conn.Send)
+	for msg := range conn.Recv {
+		switch msg.Type {
+		case "create":
+			l.create(conn)
+			return
+		case "join":
+			var lobby lobbyMessage
+			if err := json.Unmarshal(msg.Data, &lobby); err != nil {
+				var e error
+				msg := ConnMessage{Type: "error"}
+				msg.Data, e = json.Marshal(errorMessage{Text: err.Error()})
+				if e != nil {
+					log.Printf("Lobby: %s", e)
+					close(conn.Send)
+					return
+				}
+				conn.Send <- msg
+				continue
+			}
+			l.join(conn, lobby.Name, lobby.Code)
 			return
 		}
-		l.join(conn, lobby.Name, lobby.Code)
-	default:
-		log.Printf("Lobby: Unknown message type: %s", msg.Type)
-		close(conn.Send)
 	}
+}
+
+type errorMessage struct {
+	Text string
 }
