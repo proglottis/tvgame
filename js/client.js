@@ -2,7 +2,7 @@
 
 $(function() {
   var $log      = $("#log"),
-      $form     = $('form'),
+      $join_form = $('#join'),
       $waiting  = $('.waiting'),
       $question = $('.question');
 
@@ -12,13 +12,13 @@ $(function() {
 
   var conn;
 
-  $form.submit(function(event) {
+  $join_form.submit(function(event) {
     event.preventDefault();
     conn = new WebSocket($('body').data('url'));
 
 
     conn.onopen = function(event) {
-      $form.hide();
+      $join_form.hide();
       $waiting.show();
       conn.send(JSON.stringify({Type: 'join', Data: {
         Name: $('input[name=name]').val(),
@@ -33,7 +33,7 @@ $(function() {
       switch(action) {
       case "answer":
         $waiting.hide();
-        $question.text(data["Data"]["Text"]).show();
+        $question.show().find('h2').text(data["Data"]["Text"]);
         break;
       default:
         appendLog("Message: " + event.data);

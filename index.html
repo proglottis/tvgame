@@ -14,15 +14,21 @@
       <h2>TVGame</h2>
     </header>
 
-    <form>
+    <form id="join">
       <input name="name" placeholder="Name">
       <input name="code" placeholder="Room Code">
       <button type="submit">Join</button>
     </form>
 
-    <p class="waiting" hidden>Waiting for the game to start...</p>
+    <h2 class="waiting" hidden>Waiting for the game to start...</h2>
 
-    <p class="question" hidden></p>
+    <div class="question" hidden>
+      <h2></h2>
+      <form id="answer">
+        <textarea rows="8" name="answer" placeholder="Enter your lie here..."></textarea>
+        <button type="submit">Submit</button>
+      </form>
+    </div>
 
     <div id="log"></div>
 
