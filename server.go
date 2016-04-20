@@ -8,14 +8,14 @@ import (
 	"sync"
 )
 
-func generateCode() string {
-	var buf [2]byte
-	var msg [4]byte
-	if _, err := rand.Read(buf[:]); err != nil {
+func generateCode(n int) string {
+	buf := make([]byte, n/2)
+	msg := make([]byte, n)
+	if _, err := rand.Read(buf); err != nil {
 		panic(err)
 	}
-	hex.Encode(msg[:], buf[:])
-	return string(msg[:])
+	hex.Encode(msg, buf)
+	return string(msg)
 }
 
 type PlayerText struct {
@@ -56,6 +56,7 @@ func (h *RoomHost) Question(question *Question) {
 }
 
 type RoomPlayer struct {
+	ID   string
 	Name string
 	Conn *Conn `json:"-"`
 }
@@ -101,7 +102,7 @@ type Room struct {
 func NewRoom(repo *QuestionRepo, host *Conn) *Room {
 	h := &RoomHost{Conn: host}
 	return &Room{
-		Code: generateCode(),
+		Code: generateCode(4),
 		Game: NewGame(repo, h),
 		Host: host,
 		Join: make(chan *RoomPlayer),
@@ -151,7 +152,10 @@ func (r *Room) Run() {
 				r.Join = nil
 				continue
 			}
-			r.Game.AddPlayer(player)
+			if err := r.Game.AddPlayer(player); err != nil {
+				// TODO: send err to player
+				continue
+			}
 			go func() {
 				for msg := range player.Conn.Recv {
 					var text PlayerText
@@ -222,7 +226,7 @@ func (l *Lobby) join(conn *Conn, name, code string) {
 		close(conn.Send)
 		return
 	}
-	room <- &RoomPlayer{Name: name, Conn: conn}
+	room <- &RoomPlayer{ID: generateCode(10), Name: name, Conn: conn}
 }
 
 func (l *Lobby) Handle(conn *Conn) {

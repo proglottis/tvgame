@@ -27,7 +27,6 @@ func withLog(fn http.HandlerFunc) http.HandlerFunc {
 
 func main() {
 	flag.Parse()
-	log.Printf("TV Game")
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
@@ -85,7 +84,9 @@ func main() {
 		lobby.Handle(NewConn(conn))
 	}))
 
-	if err := http.ListenAndServe(":"+port, nil); err != nil {
+	addr := ":" + port
+	log.Printf("Starting on %s", addr)
+	if err := http.ListenAndServe(addr, nil); err != nil {
 		log.Fatal("ListenAndServe:", err)
 	}
 }

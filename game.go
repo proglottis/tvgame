@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io"
 	"math/rand"
+	"strings"
 )
 
 const (
@@ -18,6 +19,10 @@ var (
 	DupAnswerError = errors.New("Answer already exists")
 	OwnAnswerError = errors.New("Choose own answer")
 )
+
+func cleanText(s string) string {
+	return strings.ToUpper(strings.TrimSpace(s))
+}
 
 type record struct {
 	Question string
@@ -43,7 +48,7 @@ func NewQuestionRepo(r io.Reader) (*QuestionRepo, error) {
 		if err != nil {
 			return nil, err
 		}
-		record := record{Question: row[0], Answer: row[1]}
+		record := record{Question: row[0], Answer: cleanText(row[1])}
 		repo.records = append(repo.records, record)
 		answerSet[record.Answer] = struct{}{}
 	}
@@ -180,7 +185,7 @@ func (c *AnswerCollector) Collect(player Player, text string) error {
 		if a.Player == player {
 			answer = a
 		}
-		if a.Text == text {
+		if cleanText(a.Text) == cleanText(text) {
 			return DupAnswerError
 		}
 	}
@@ -212,7 +217,7 @@ func (c *VoteCollector) Collect(player Player, text string) error {
 	}
 	var answer *Answer
 	for _, a := range c.Question.Answers {
-		if a.Text == text {
+		if cleanText(a.Text) == cleanText(text) {
 			answer = a
 		}
 		if a.HasVoted(player) {
@@ -271,11 +276,12 @@ func NewGame(repo *QuestionRepo, host Host) *Game {
 	return game
 }
 
-func (g *Game) AddPlayer(players ...Player) {
+func (g *Game) AddPlayer(players ...Player) error {
 	for _, p := range players {
 		g.Players[p] = 0
 		g.Host.Joined(p)
 	}
+	return nil
 }
 
 func (g *Game) broadcastQuestion() {
