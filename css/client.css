@@ -11,3 +11,21 @@ h2 {
   margin-top: 0;
   padding: 10px;
 }
+
+input {
+  padding: 5px;
+  border: 1px solid darkgray;
+  width: 90%;
+  margin: 10px;
+  height: 25px;
+}
+
+button {
+  width: 90%;
+  margin: 10px;
+  height: 35px;
+  background: blue;
+  border: none;
+  color: white;
+  border-radius: 2px;
+}
