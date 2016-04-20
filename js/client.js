@@ -1,7 +1,10 @@
 "use strict";
 
 $(function() {
-  var $log = $("#log");
+  var $log      = $("#log"),
+      $form     = $('form'),
+      $waiting  = $('.waiting'),
+      $question = $('.question');
 
   function appendLog(msg) {
     $log.append($("<div>").text(msg));
@@ -9,13 +12,14 @@ $(function() {
 
   var conn;
 
-  $('form').submit(function(event) {
+  $form.submit(function(event) {
     event.preventDefault();
     conn = new WebSocket($('body').data('url'));
 
 
     conn.onopen = function(event) {
-      appendLog("Connection opened");
+      $form.hide();
+      $waiting.show();
       conn.send(JSON.stringify({Type: 'join', Data: {
         Name: $('input[name=name]').val(),
         Code: $('input[name=code]').val()
@@ -23,7 +27,17 @@ $(function() {
     };
 
     conn.onmessage = function(event) {
-      appendLog("Message: " + event.data);
+      var data   = JSON.parse(event.data),
+          action = data["Type"];
+
+      switch(action) {
+      case "answer":
+        $waiting.hide();
+        $question.text(data["Data"]["Text"]).show();
+        break;
+      default:
+        appendLog("Message: " + event.data);
+      }
     };
 
     conn.onclose = function(event) {
