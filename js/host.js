@@ -1,7 +1,9 @@
 "use strict";
 
 $(function() {
-  var $log = $("#log");
+  var $log     = $("#log"),
+      $players = $(".players"),
+      $lobby   = $(".lobby");
 
   function appendLog(msg) {
     $log.append($("<div>").text(msg));
@@ -15,7 +17,19 @@ $(function() {
   };
 
   conn.onmessage = function(event) {
-    appendLog("Message: " + event.data);
+    var data   = JSON.parse(event.data),
+        action = data["Type"];
+
+    switch(action) {
+    case "create":
+      $lobby.append(data["Data"]["Code"]);
+      break;
+    case "joined":
+      $players.append("<li>" + data["Data"]["Player"]["Name"] + "</li>");
+      break;
+    default:
+      appendLog("Message: " + event.data);
+    }
   };
 
   conn.onclose = function(event) {
