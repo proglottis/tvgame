@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io"
 	"math/rand"
+	"sort"
 	"strings"
 )
 
@@ -118,10 +119,16 @@ func (a *Answer) HasVoted(player Player) bool {
 	return false
 }
 
+type AnswerSlice []*Answer
+
+func (p AnswerSlice) Len() int           { return len(p) }
+func (p AnswerSlice) Less(i, j int) bool { return p[i].Text < p[j].Text }
+func (p AnswerSlice) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
+
 type Question struct {
 	Text       string
 	Multiplier int
-	Answers    []*Answer
+	Answers    AnswerSlice
 }
 
 func (q *Question) CorrectAnswer() *Answer {
@@ -203,6 +210,7 @@ func (c *AnswerCollector) Collect(player Player, text string) error {
 	}
 	answer = &Answer{Text: text, Player: player}
 	c.Question.Answers = append(c.Question.Answers, answer)
+	sort.Sort(c.Question.Answers)
 	c.Remaining -= 1
 	return nil
 }
