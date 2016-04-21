@@ -43,7 +43,52 @@ $(function() {
     conn.send(JSON.stringify({type: "create"}));
   };
 
+  var state = lobby;
   conn.onmessage = function(event) {
+    state = state(event);
+  }
+
+  function voteCollection(event) {
+    var res   = JSON.parse(event.data),
+        data  = res["Data"],
+        action = res["Type"],
+        mode  = 'answer';
+
+    switch (action) {
+    case "collected":
+      // {"Type":"collected","Data":{"Player":{"ID":"948cce4fae","Name":"ff85"},"Complete":true}}
+      if ( data["Complete"] ) {
+
+      }
+      break;
+    default:
+      appendLog("Message: " + event.data);
+    }
+    return voteCollection;
+  }
+
+  function answerCollection(event) {
+    var res   = JSON.parse(event.data),
+        data  = res["Data"],
+        action = res["Type"],
+        mode  = 'answer';
+
+    switch (action) {
+    case "collected":
+      // {"Type":"collected","Data":{"Player":{"ID":"948cce4fae","Name":"ff85"},"Complete":true}}
+      if ( data["Complete"] ) {
+          timer.stop();
+          conn.send(JSON.stringify({type: "vote"}));
+          return voteCollection;
+      }
+      break;
+    default:
+      appendLog("Message: " + event.data);
+    }
+    return answerCollection;
+  }
+
+  function lobby(event) {
     var res   = JSON.parse(event.data),
         data  = res["Data"],
         action = res["Type"],
@@ -62,19 +107,7 @@ $(function() {
       $start.hide();
       $question.show().find('h1').text(data["Question"]["Text"]);
       timer = new Timer($question.find('.timer'));
-      break;
-    case "collected":
-      // {"Type":"collected","Data":{"Player":{"ID":"948cce4fae","Name":"ff85"},"Complete":true}}
-      if ( data["Complete"] ) {
-        if ( mode == 'answer' ) {
-          mode = 'vote';
-          timer.stop();
-          conn.send(JSON.stringify({type: "vote"}));
-        } else {
-          mode = 'answer'
-        }
-      }
-      break;
+      return answerCollection;
     case "vote":
       var html = $.map(data["Question"]["Answers"], function (answer) {
         return '<li>' + answer["Text"] + '</li>';
@@ -85,7 +118,8 @@ $(function() {
     default:
       appendLog("Message: " + event.data);
     }
-  };
+    return lobby;
+  }
 
   conn.onclose = function(event) {
     appendLog("Connection closed");
