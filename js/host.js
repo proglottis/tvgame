@@ -22,6 +22,7 @@ $(function() {
     function showTime() {
       if ( time_remaining === 0 ) {
         clearInterval(interval);
+        conn.send(JSON.stringify({type: "vote"}));
       } else {
         time_remaining--;
         seconds.text(time_remaining);
