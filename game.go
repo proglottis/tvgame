@@ -311,7 +311,7 @@ func (g *Game) broadcastVote() {
 	for player := range g.Players {
 		var answers []string
 		for _, answer := range question.Answers {
-			if answer.Player == nil && answer.Player != player {
+			if answer.Player == nil || answer.Player != player {
 				answers = append(answers, answer.Text)
 			}
 		}
