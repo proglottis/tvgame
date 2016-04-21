@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"fmt"
 	"testing"
 )
 
@@ -190,6 +191,20 @@ func TestVoteCollector_Complete(t *testing.T) {
 	collector.Remaining = 0
 	if !collector.Complete() {
 		t.Errorf("Expected to be complete")
+	}
+}
+
+func TestGame_AddPlayer(t *testing.T) {
+	host := &testHost{}
+	repo := newRepo(t)
+	game := NewGame(repo, host)
+	for i := 0; i < maxPlayers; i++ {
+		if err := game.AddPlayer(&testPlayer{Name: fmt.Sprintf("%d", i+1)}); err != nil {
+			t.Fatalf("Expected success, got %s", err)
+		}
+	}
+	if err := game.AddPlayer(&testPlayer{Name: "too many"}); err != RoomFullError {
+		t.Fatalf("Expected RoomFullError, got %s", err)
 	}
 }
 

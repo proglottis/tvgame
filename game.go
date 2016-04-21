@@ -12,6 +12,7 @@ import (
 const (
 	creatorPoints = 1000
 	correctPoints = 1500
+	maxPlayers    = 8
 )
 
 var (
@@ -21,6 +22,7 @@ var (
 	OwnAnswerError   = errors.New("Choose own answer")
 	ShortAnswerError = errors.New("Answer is too short")
 	LongAnswerError  = errors.New("Answer is too long")
+	RoomFullError    = errors.New("Room is full")
 )
 
 func cleanText(s string) string {
@@ -290,6 +292,9 @@ func NewGame(repo *QuestionRepo, host Host) *Game {
 }
 
 func (g *Game) AddPlayer(players ...Player) error {
+	if len(g.Players)+len(players) > maxPlayers {
+		return RoomFullError
+	}
 	for _, p := range players {
 		g.Players[p] = 0
 		g.Host.Joined(p)
