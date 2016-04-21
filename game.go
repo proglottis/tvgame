@@ -14,10 +14,11 @@ const (
 )
 
 var (
-	CompletedError = errors.New("Already completed")
-	NoAnswerError  = errors.New("No such answer")
-	DupAnswerError = errors.New("Answer already exists")
-	OwnAnswerError = errors.New("Choose own answer")
+	CompletedError   = errors.New("Already completed")
+	NoAnswerError    = errors.New("No such answer")
+	DupAnswerError   = errors.New("Answer already exists")
+	OwnAnswerError   = errors.New("Choose own answer")
+	EmptyAnswerError = errors.New("Empty answer")
 )
 
 func cleanText(s string) string {
@@ -187,11 +188,15 @@ func (c *AnswerCollector) Collect(player Player, text string) error {
 		return CompletedError
 	}
 	var answer *Answer
+	text = cleanText(text)
+	if text == "" {
+		return EmptyAnswerError
+	}
 	for _, a := range c.Question.Answers {
 		if a.Player == player {
 			answer = a
 		}
-		if cleanText(a.Text) == cleanText(text) {
+		if a.Text == text {
 			return DupAnswerError
 		}
 	}
@@ -223,7 +228,7 @@ func (c *VoteCollector) Collect(player Player, text string) error {
 	}
 	var answer *Answer
 	for _, a := range c.Question.Answers {
-		if cleanText(a.Text) == cleanText(text) {
+		if a.Text == cleanText(text) {
 			answer = a
 		}
 		if a.HasVoted(player) {

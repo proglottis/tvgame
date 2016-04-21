@@ -79,9 +79,9 @@ func TestQuestionRepo_Answers(t *testing.T) {
 func TestNewResultSet(t *testing.T) {
 	p1 := &testPlayer{Name: "B1"}
 	p2 := &testPlayer{Name: "B2"}
-	a1 := &Answer{Text: "Apple", Correct: true}
-	a2 := &Answer{Text: "Banana", Player: p1}
-	a3 := &Answer{Text: "Carrot", Player: p2}
+	a1 := &Answer{Text: "APPLE", Correct: true}
+	a2 := &Answer{Text: "BANANA", Player: p1}
+	a3 := &Answer{Text: "CARROT", Player: p2}
 	question := &Question{
 		Text:    "Fruit?",
 		Answers: []*Answer{a1, a2, a3},
@@ -109,6 +109,9 @@ func TestAnswerCollector_Collect(t *testing.T) {
 	question := &Question{Text: "Fruit?"}
 	collector := AnswerCollector{Question: question, Remaining: 2}
 
+	if err := collector.Collect(p1, " "); err != EmptyAnswerError {
+		t.Errorf("Expected EmptyAnswerError, got %s", err)
+	}
 	if err := collector.Collect(p1, "Apple"); err != nil {
 		t.Errorf("Expected success, got %s", err)
 	}
@@ -147,9 +150,9 @@ func TestVoteCollector_Collect(t *testing.T) {
 	question := &Question{
 		Text: "Fruit?",
 		Answers: []*Answer{
-			{Text: "Apple"},
-			{Text: "Banana"},
-			{Text: "Carrot", Player: p1},
+			{Text: "APPLE"},
+			{Text: "BANANA"},
+			{Text: "CARROT", Player: p1},
 		},
 	}
 	collector := VoteCollector{Question: question, Remaining: 2}
