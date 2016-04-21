@@ -1,5 +1,7 @@
 "use strict";
 
+var timer;
+
 $(function() {
   var $log      = $("#log"),
       $players  = $(".players"),
@@ -17,17 +19,21 @@ $(function() {
         interval;
 
     seconds.text(time_remaining);
-    interval = setInterval(showTime, 1000);
+    interval = setInterval(showTime.bind(this), 1000);
 
     function showTime() {
       if ( time_remaining === 0 ) {
-        clearInterval(interval);
+        this.stop();
         conn.send(JSON.stringify({type: "vote"}));
       } else {
         time_remaining--;
         seconds.text(time_remaining);
       }
-    }
+    };
+
+    this.stop = function () {
+      clearInterval(interval);
+    };
   }
 
   var conn = new WebSocket($('body').data('url'));
@@ -41,7 +47,7 @@ $(function() {
     var data   = JSON.parse(event.data),
         action = data["Type"];
 
-    switch(action) {
+    switch (action) {
     case "create":
       $lobby.append(data["Data"]["Code"]);
       break;
@@ -50,9 +56,17 @@ $(function() {
       $players.append("<li>" + data["Data"]["Player"]["Name"] + "</li>");
       break;
     case "question":
+      // {"Type":"question","Data":{"Question":{"Text":"In which year were premium bonds first issued in Britain?","Multiplier":1,"Answers":[{"Correct":true,"Text":"1956","Player":null,"Votes":null}]}}}
       $start.hide();
       $question.show().find('h1').text(data["Data"]["Question"]["Text"]);
-      new Timer($question.find('.timer'));
+      timer = new Timer($question.find('.timer'));
+      break;
+    case "collected":
+      // {"Type":"collected","Data":{"Player":{"ID":"948cce4fae","Name":"ff85"},"Complete":true}}
+      if ( data["Data"]["Complete"] ) {
+        timer.stop();
+        conn.send(JSON.stringify({type: "vote"}));
+      }
       break;
     default:
       appendLog("Message: " + event.data);
