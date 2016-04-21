@@ -44,26 +44,27 @@ $(function() {
   };
 
   conn.onmessage = function(event) {
-    var data   = JSON.parse(event.data),
-        action = data["Type"];
+    var res   = JSON.parse(event.data),
+        data  = res["Data"],
+        action = res["Type"];
 
     switch (action) {
     case "create":
-      $lobby.append(data["Data"]["Code"]);
+      $lobby.append(data["Code"]);
       break;
     case "joined":
       $start.show();
-      $players.append("<li>" + data["Data"]["Player"]["Name"] + "</li>");
+      $players.append("<li>" + data["Player"]["Name"] + "</li>");
       break;
     case "question":
       // {"Type":"question","Data":{"Question":{"Text":"In which year were premium bonds first issued in Britain?","Multiplier":1,"Answers":[{"Correct":true,"Text":"1956","Player":null,"Votes":null}]}}}
       $start.hide();
-      $question.show().find('h1').text(data["Data"]["Question"]["Text"]);
+      $question.show().find('h1').text(data["Question"]["Text"]);
       timer = new Timer($question.find('.timer'));
       break;
     case "collected":
       // {"Type":"collected","Data":{"Player":{"ID":"948cce4fae","Name":"ff85"},"Complete":true}}
-      if ( data["Data"]["Complete"] ) {
+      if ( data["Complete"] ) {
         timer.stop();
         conn.send(JSON.stringify({type: "vote"}));
       }
