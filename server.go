@@ -136,10 +136,11 @@ type Room struct {
 func NewRoom(repo *QuestionRepo, host *Conn) *Room {
 	h := &RoomHost{Conn: host}
 	return &Room{
-		Code: generateCode(4),
-		Game: NewGame(repo, h),
-		Host: host,
-		Join: make(chan *RoomPlayer),
+		Code:           generateCode(4),
+		Game:           NewGame(repo, h),
+		Host:           host,
+		Join:           make(chan *RoomPlayer),
+		playerMessages: make(chan PlayerText),
 	}
 }
 
@@ -156,7 +157,6 @@ func (r *Room) Run() {
 	}
 	r.Host.Send <- msg
 
-	var playerMessages chan PlayerText
 	for {
 		select {
 		case msg, ok := <-r.Host.Recv:
@@ -174,9 +174,9 @@ func (r *Room) Run() {
 			case "stop":
 				r.Game.Stop()
 			}
-		case msg, ok := <-playerMessages:
+		case msg, ok := <-r.playerMessages:
 			if !ok {
-				playerMessages = nil
+				r.playerMessages = nil
 				continue
 			}
 			if err := r.Game.Collect(msg.Player, msg.Text); err != nil {
@@ -198,6 +198,7 @@ func (r *Room) Run() {
 					if err := json.Unmarshal(msg.Data, &text); err != nil {
 						panic(err)
 					}
+					text.Player = player
 					r.playerMessages <- text
 				}
 			}()
