@@ -99,7 +99,6 @@ $(function() {
       $lobby.append(data["Code"]);
       break;
     case "joined":
-      $start.show();
       $players.find('.blank').first().text(data["Player"]["Name"]).removeClass('blank');
       break;
     case "question":
