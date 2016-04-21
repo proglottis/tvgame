@@ -1,21 +1,20 @@
 package main
 
 import (
-	"crypto/rand"
-	"encoding/hex"
 	"encoding/json"
 	"log"
+	"math/rand"
 	"sync"
 )
 
+const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+
 func generateCode(n int) string {
-	buf := make([]byte, n/2)
 	msg := make([]byte, n)
-	if _, err := rand.Read(buf); err != nil {
-		panic(err)
+	for i := range msg {
+		msg[i] = letters[rand.Intn(len(letters))]
 	}
-	hex.Encode(msg, buf)
-	return string(msg)
+	return CleanText(string(msg))
 }
 
 type PlayerText struct {
@@ -165,7 +164,6 @@ type Room struct {
 func NewRoom(repo *QuestionRepo, host *Conn) *Room {
 	h := &RoomHost{Conn: host}
 	return &Room{
-		Code:           generateCode(4),
 		Game:           NewGame(repo, h),
 		Host:           host,
 		Join:           make(chan *RoomPlayer),
@@ -284,6 +282,12 @@ func (l *Lobby) create(conn *Conn) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	room := NewRoom(l.Repo, conn)
+	for {
+		room.Code = generateCode(5)
+		if _, ok := l.rooms[room.Code]; !ok {
+			break
+		}
+	}
 	go room.Run()
 	l.rooms[room.Code] = room.Join
 }
@@ -304,6 +308,7 @@ func (l *Lobby) detatch(code string) {
 func (l *Lobby) join(conn *Conn, name, code string) {
 	l.mu.RLock()
 	defer l.mu.RUnlock()
+	code = CleanText(code)
 	room, ok := l.rooms[code]
 	if !ok {
 		log.Printf("Lobby: No such room to join: %s", code)
