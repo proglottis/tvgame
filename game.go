@@ -321,8 +321,11 @@ func (g *Game) Vote() {
 
 func (g *Game) Collect(player Player, text string) error {
 	err := g.collector.Collect(player, text)
+	if err != nil {
+		return err
+	}
 	g.Host.Collected(player, g.collector.Complete())
-	return err
+	return nil
 }
 
 func (g *Game) Stop() {
