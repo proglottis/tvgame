@@ -5,7 +5,8 @@ $(function() {
       $join_form   = $('#join'),
       $waiting     = $('.waiting'),
       $question    = $('.question'),
-      $answer_form = $('#answer-form');
+      $answer_form = $('#answer-form'),
+      $answers     = $question.find('.answers');
 
   function appendLog(msg) {
     $log.append($("<div>").text(msg));
@@ -38,8 +39,8 @@ $(function() {
         break;
       case "vote":
         // {"Type":"vote","Data":{"Text":"A phlebotomist extracts what from the human body?","Answers":["BLOOD"]}}
-        $question.find('#answer').hide();
-        $question.find('.answers').show().html('<li>' + data["Data"]["Answers"].join('</li><li>') + '</li>');
+        $answer_form.hide();
+        $answers.show().html('<li>' + data["Data"]["Answers"].join('</li><li>') + '</li>');
         break;
       default:
         appendLog("Message: " + event.data);
@@ -60,5 +61,11 @@ $(function() {
     conn.send(JSON.stringify({Type: 'answer', Data: {
       Text: $('textarea[name=answer]').val()
     }}))
+  });
+
+  $answers.click(function (event) {
+    conn.send(JSON.stringify({Type: 'vote', Data: {
+      Text: event.target.innerText
+    }}));
   });
 });
