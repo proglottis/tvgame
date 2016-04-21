@@ -304,6 +304,20 @@ func (g *Game) broadcastQuestion() {
 	}
 }
 
+func (g *Game) broadcastVote() {
+	question := g.Current()
+	g.Host.Question(question)
+	for player := range g.Players {
+		var answers []string
+		for _, answer := range question.Answers {
+			if answer.Player == nil && answer.Player != player {
+				answers = append(answers, answer.Text)
+			}
+		}
+		player.RequestVote(question.Text, answers)
+	}
+}
+
 func (g *Game) broadcastResults(results *ResultSet) {
 	g.Host.Results(results)
 }
@@ -324,6 +338,7 @@ func (g *Game) Vote() {
 		Question:  g.Current(),
 		Remaining: len(g.Players),
 	}
+	g.broadcastVote()
 }
 
 func (g *Game) Collect(player Player, text string) error {
