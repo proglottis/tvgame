@@ -92,6 +92,7 @@ type Host interface {
 	Joined(player Player)
 	Question(question *Question)
 	Collected(player Player, complete bool)
+	Results(results *ResultSet)
 }
 
 type Player interface {
@@ -299,6 +300,7 @@ func (g *Game) broadcastQuestion() {
 }
 
 func (g *Game) broadcastResults(results *ResultSet) {
+	g.Host.Results(results)
 }
 
 func (g *Game) complete() {

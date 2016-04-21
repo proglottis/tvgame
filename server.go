@@ -76,6 +76,18 @@ func (h *RoomHost) Collected(player Player, complete bool) {
 	h.Conn.Send <- msg
 }
 
+func (h *RoomHost) Results(results *ResultSet) {
+	var err error
+	msg := ConnMessage{Type: "results"}
+	msg.Data, err = json.Marshal(results)
+	if err != nil {
+		log.Printf("RoomHost: %s", err)
+		close(h.Conn.Send)
+		return
+	}
+	h.Conn.Send <- msg
+}
+
 type RoomPlayer struct {
 	ID   string
 	Name string
