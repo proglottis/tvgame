@@ -172,9 +172,6 @@ func (c NonCollector) Collect(player Player, text string) error {
 	return CompletedError
 }
 
-func (c NonCollector) Stop() {
-}
-
 func (c NonCollector) Complete() bool {
 	return true
 }
@@ -214,10 +211,6 @@ func (c *AnswerCollector) Complete() bool {
 	return c.Remaining <= 0
 }
 
-func (c *AnswerCollector) Stop() {
-	c.Remaining = 0
-}
-
 type VoteCollector struct {
 	Question  *Question
 	Remaining int
@@ -251,13 +244,8 @@ func (c *VoteCollector) Complete() bool {
 	return c.Remaining <= 0
 }
 
-func (c *VoteCollector) Stop() {
-	c.Remaining = 0
-}
-
 type Collector interface {
 	Collect(player Player, text string) error
-	Stop()
 	Complete() bool
 }
 
@@ -352,7 +340,7 @@ func (g *Game) Collect(player Player, text string) error {
 }
 
 func (g *Game) Stop() {
-	g.collector.Stop()
+	g.collector = NonCollector{}
 	results := NewResultSet(g.Current())
 	for _, points := range results.Points {
 		for _, offset := range points {
