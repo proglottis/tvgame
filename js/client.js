@@ -1,10 +1,11 @@
 "use strict";
 
 $(function() {
-  var $log      = $("#log"),
-      $join_form = $('#join'),
-      $waiting  = $('.waiting'),
-      $question = $('.question');
+  var $log         = $("#log"),
+      $join_form   = $('#join'),
+      $waiting     = $('.waiting'),
+      $question    = $('.question'),
+      $answer_form = $('#answer');
 
   function appendLog(msg) {
     $log.append($("<div>").text(msg));
@@ -47,5 +48,12 @@ $(function() {
     conn.onerror = function(event) {
       appendLog("Error: " + event.data);
     };
+  });
+
+  $answer_form.submit(function (event) {
+    event.preventDefault();
+    conn.send(JSON.stringify({Type: 'answer', Data: {
+      Text: $('textarea[name=answer]').val()
+    }}))
   });
 });
