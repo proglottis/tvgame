@@ -5,7 +5,7 @@ $(function() {
       $join_form   = $('#join'),
       $waiting     = $('.waiting'),
       $question    = $('.question'),
-      $answer_form = $('#answer');
+      $answer_form = $('#answer-form');
 
   function appendLog(msg) {
     $log.append($("<div>").text(msg));
