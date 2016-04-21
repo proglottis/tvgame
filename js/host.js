@@ -5,6 +5,7 @@ $(function() {
       $players  = $(".players"),
       $start    = $(".start"),
       $question = $(".question"),
+      $answers  = $question.find('.answers'),
       $lobby    = $(".lobby"),
       timer;
 
@@ -13,7 +14,7 @@ $(function() {
   }
 
   var Timer = function (el) {
-    var time_remaining = 10,
+    var time_remaining = 30,
         seconds        = el.find('.seconds'),
         interval;
 
@@ -45,7 +46,8 @@ $(function() {
   conn.onmessage = function(event) {
     var res   = JSON.parse(event.data),
         data  = res["Data"],
-        action = res["Type"];
+        action = res["Type"],
+        mode  = 'answer';
 
     switch (action) {
     case "create":
@@ -64,9 +66,21 @@ $(function() {
     case "collected":
       // {"Type":"collected","Data":{"Player":{"ID":"948cce4fae","Name":"ff85"},"Complete":true}}
       if ( data["Complete"] ) {
-        timer.stop();
-        conn.send(JSON.stringify({type: "vote"}));
+        if ( mode == 'answer' ) {
+          mode = 'vote';
+          timer.stop();
+          conn.send(JSON.stringify({type: "vote"}));
+        } else {
+          mode = 'answer'
+        }
       }
+      break;
+    case "vote":
+      var html = $.map(data["Question"]["Answers"], function (answer) {
+        return '<li>' + answer["Text"] + '</li>';
+      });
+      $answers.html(html.join('')).show();
+      // {"Type":"vote","Data":{"Question":{"Text":"In the city of Manchester (England) the Irk and Medlock join which river?","Multiplier":1,"Answers":[{"Correct":true,"Text":"IRWELL","Player":null,"Votes":null},{"Correct":false,"Text":"FOO","Player":{"ID":"04cdd7b5ca","Name":"25bb"},"Votes":null}]}}}
       break;
     default:
       appendLog("Message: " + event.data);
