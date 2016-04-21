@@ -100,7 +100,7 @@ $(function() {
       break;
     case "joined":
       $start.show();
-      $players.append("<li>" + data["Player"]["Name"] + "</li>");
+      $players.find('.blank').first().text(data["Player"]["Name"]).removeClass('blank');
       break;
     case "question":
       // {"Type":"question","Data":{"Question":{"Text":"In which year were premium bonds first issued in Britain?","Multiplier":1,"Answers":[{"Correct":true,"Text":"1956","Player":null,"Votes":null}]}}}
