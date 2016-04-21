@@ -6,7 +6,6 @@ import (
 	"io"
 	"math/rand"
 	"sort"
-	"strings"
 )
 
 const (
@@ -24,10 +23,6 @@ var (
 	LongAnswerError  = errors.New("Answer is too long")
 	RoomFullError    = errors.New("Room is full")
 )
-
-func cleanText(s string) string {
-	return strings.ToUpper(strings.TrimSpace(s))
-}
 
 type record struct {
 	Question string
@@ -53,7 +48,7 @@ func NewQuestionRepo(r io.Reader) (*QuestionRepo, error) {
 		if err != nil {
 			return nil, err
 		}
-		record := record{Question: row[0], Answer: cleanText(row[1])}
+		record := record{Question: row[0], Answer: CleanText(row[1])}
 		repo.records = append(repo.records, record)
 		answerSet[record.Answer] = struct{}{}
 	}
@@ -196,7 +191,7 @@ func (c *AnswerCollector) Collect(player Player, text string) error {
 		return CompletedError
 	}
 	var answer *Answer
-	text = cleanText(text)
+	text = CleanText(text)
 	if len(text) < 1 {
 		return ShortAnswerError
 	}
@@ -236,7 +231,7 @@ func (c *VoteCollector) Collect(player Player, text string) error {
 	}
 	var answer *Answer
 	for _, a := range c.Question.Answers {
-		if a.Text == cleanText(text) {
+		if a.Text == CleanText(text) {
 			answer = a
 		}
 		if a.HasVoted(player) {

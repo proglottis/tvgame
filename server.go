@@ -218,6 +218,22 @@ func (r *Room) Run() {
 				r.Join = nil
 				continue
 			}
+			player.Name = CleanText(player.Name)
+			if len(player.Name) < 1 {
+				player.SendError("Name is required")
+				continue
+			}
+			nameTaken := false
+			for other := range r.Game.Players {
+				if other.(*RoomPlayer).Name == player.Name {
+					nameTaken = true
+					break
+				}
+			}
+			if nameTaken {
+				player.SendError("Name is taken")
+				continue
+			}
 			if err := r.Game.AddPlayer(player); err != nil {
 				player.SendError(err.Error())
 				continue
