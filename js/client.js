@@ -36,6 +36,11 @@ $(function() {
         $waiting.hide();
         $question.show().find('h2').text(data["Data"]["Text"]);
         break;
+      case "vote":
+        // {"Type":"vote","Data":{"Text":"A phlebotomist extracts what from the human body?","Answers":["BLOOD"]}}
+        $question.find('#answer').hide();
+        $question.find('.answers').show().html('<li>' + data["Data"]["Answers"].join('</li><li>') + '</li>');
+        break;
       default:
         appendLog("Message: " + event.data);
       }

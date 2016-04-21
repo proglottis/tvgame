@@ -1,13 +1,12 @@
 "use strict";
 
-var timer;
-
 $(function() {
   var $log      = $("#log"),
       $players  = $(".players"),
       $start    = $(".start"),
       $question = $(".question"),
-      $lobby    = $(".lobby");
+      $lobby    = $(".lobby"),
+      timer;
 
   function appendLog(msg) {
     $log.append($("<div>").text(msg));

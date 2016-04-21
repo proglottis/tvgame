@@ -39,3 +39,9 @@ textarea {
 .question, .waiting {
   padding: 0 20px;
 }
+
+.answers > li {
+  font-weight: bold;
+  padding-bottom: 18px;
+  font-size: 20px;
+}
