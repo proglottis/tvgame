@@ -117,6 +117,11 @@ func (p *RoomPlayer) SendError(text string) {
 	p.Conn.Send <- msg
 }
 
+func (p *RoomPlayer) SendAck() {
+	msg := ConnMessage{Type: "ok"}
+	p.Conn.Send <- msg
+}
+
 type requestAnswerMessage struct {
 	Text string
 }
@@ -207,6 +212,7 @@ func (r *Room) Run() {
 				msg.Player.SendError(err.Error())
 				continue
 			}
+			msg.Player.SendAck()
 		case player, ok := <-r.Join:
 			if !ok {
 				r.Join = nil
@@ -216,6 +222,7 @@ func (r *Room) Run() {
 				player.SendError(err.Error())
 				continue
 			}
+			player.SendAck()
 			go func() {
 				for msg := range player.Conn.Recv {
 					var text PlayerText

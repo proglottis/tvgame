@@ -24,7 +24,7 @@ const (
 
 type ConnMessage struct {
 	Type string
-	Data json.RawMessage
+	Data json.RawMessage `json:",omitempty"`
 }
 
 type Conn struct {
