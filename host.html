@@ -10,23 +10,35 @@
   </head>
   <body data-url="ws://{{$}}/ws">
 
-    <h1 class="lobby">Lobby: </h1>
+    <div class="container">
+      <article class="main">
+        <h1 class="lobby">Lobby: </h1>
+        <form class="start" hidden>
+          <div><button type="submit">Start</button></div>
+        </form>
 
-    <h1>Players</h1>
-    <ul class="players"></ul>
+        <div class="question" hidden>
+          <h1></h1>
+          <ul class="answers" hidden></ul>
+          <h2 class="timer">Time Remaining: <span class="seconds"></span> seconds</h2>
+        </div>
 
-    <form class="start" hidden>
-      <div><button type="submit">Start</button></div>
-    </form>
-
-    <div class="question" hidden>
-      <h1></h1>
-      <ul class="answers" hidden></ul>
-      <h2 class="timer">Time Remaining: <span class="seconds"></span> seconds</h2>
+        <br><br>
+        <div id="log"></div>
+      </article>
+      <aside class="aside">
+        <ul class="players">
+          <li class="blank">login to play!</li>
+          <li class="blank">login to play!</li>
+          <li class="blank">login to play!</li>
+          <li class="blank">login to play!</li>
+          <li class="blank">login to play!</li>
+          <li class="blank">login to play!</li>
+          <li class="blank">login to play!</li>
+          <li class="blank">login to play!</li>
+        </ul>
+      </aside>
     </div>
-
-    <br><br>
-    <div id="log"></div>
 
     <script src="js/lib/jquery-2.2.1.min.js"></script>
     <script src="js/host.js"></script>
