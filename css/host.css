@@ -76,6 +76,10 @@ button {
   border-radius: 20px;
 }
 
+.question > h1 {
+  margin-bottom: 150px;
+}
+
 .players > li {
   color: #fff;
   outline: #fff dashed;

@@ -6,6 +6,8 @@ $(function() {
       $start    = $(".start"),
       $question = $(".question"),
       $answers  = $question.find('.answers'),
+      $join     = $(".join"),
+      $timer     = $(".timer"),
       $lobby    = $(".lobby"),
       timer;
 
@@ -104,8 +106,10 @@ $(function() {
     case "question":
       // {"Type":"question","Data":{"Question":{"Text":"In which year were premium bonds first issued in Britain?","Multiplier":1,"Answers":[{"Correct":true,"Text":"1956","Player":null,"Votes":null}]}}}
       $start.hide();
+      $join.hide();
+      $timer.show();
       $question.show().find('h1').text(data["Question"]["Text"]);
-      timer = new Timer($question.find('.timer'));
+      timer = new Timer($timer);
       return answerCollection;
     case "vote":
       var html = $.map(data["Question"]["Answers"], function (answer) {
