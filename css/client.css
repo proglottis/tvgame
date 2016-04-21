@@ -44,4 +44,5 @@ textarea {
   font-weight: bold;
   padding-bottom: 18px;
   font-size: 20px;
+  list-style-position: inside;
 }

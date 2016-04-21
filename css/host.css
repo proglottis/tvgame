@@ -11,3 +11,10 @@ button {
   border-radius: 5px;
   font-size: xx-large;
 }
+
+.answers > li {
+  font-weight: bold;
+  padding-bottom: 18px;
+  font-size: 20px;
+  list-style-position: inside;
+}
