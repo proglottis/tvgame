@@ -19,7 +19,8 @@ var (
 	NoAnswerError    = errors.New("No such answer")
 	DupAnswerError   = errors.New("Answer already exists")
 	OwnAnswerError   = errors.New("Choose own answer")
-	EmptyAnswerError = errors.New("Empty answer")
+	ShortAnswerError = errors.New("Answer is too short")
+	LongAnswerError  = errors.New("Answer is too long")
 )
 
 func cleanText(s string) string {
@@ -194,8 +195,11 @@ func (c *AnswerCollector) Collect(player Player, text string) error {
 	}
 	var answer *Answer
 	text = cleanText(text)
-	if text == "" {
-		return EmptyAnswerError
+	if len(text) < 1 {
+		return ShortAnswerError
+	}
+	if len(text) > 50 {
+		return LongAnswerError
 	}
 	for _, a := range c.Question.Answers {
 		if a.Player == player {

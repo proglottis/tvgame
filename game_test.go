@@ -110,8 +110,8 @@ func TestAnswerCollector_Collect(t *testing.T) {
 	question := &Question{Text: "Fruit?"}
 	collector := AnswerCollector{Question: question, Remaining: 2}
 
-	if err := collector.Collect(p1, " "); err != EmptyAnswerError {
-		t.Errorf("Expected EmptyAnswerError, got %s", err)
+	if err := collector.Collect(p1, " "); err != ShortAnswerError {
+		t.Errorf("Expected ShortAnswerError, got %s", err)
 	}
 	if err := collector.Collect(p1, "Apple"); err != nil {
 		t.Errorf("Expected success, got %s", err)
