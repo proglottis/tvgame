@@ -29,8 +29,9 @@ func (testPlayer) RequestVote(question string, answers []string) {}
 
 type testHost struct{}
 
-func (testHost) Joined(player Player)        {}
-func (testHost) Question(question *Question) {}
+func (testHost) Joined(player Player)                   {}
+func (testHost) Question(question *Question)            {}
+func (testHost) Collected(player Player, complete bool) {}
 
 func TestQuestionRepo_bad_format(t *testing.T) {
 	buf := bytes.NewBufferString(badFile)

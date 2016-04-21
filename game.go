@@ -91,6 +91,7 @@ func (r *QuestionRepo) Answers(answers []*Answer) []*Answer {
 type Host interface {
 	Joined(player Player)
 	Question(question *Question)
+	Collected(player Player, complete bool)
 }
 
 type Player interface {
@@ -171,6 +172,10 @@ func (c NonCollector) Collect(player Player, text string) error {
 func (c NonCollector) Stop() {
 }
 
+func (c NonCollector) Complete() bool {
+	return true
+}
+
 type AnswerCollector struct {
 	Question  *Question
 	Remaining int
@@ -246,6 +251,7 @@ func (c *VoteCollector) Stop() {
 type Collector interface {
 	Collect(player Player, text string) error
 	Stop()
+	Complete() bool
 }
 
 type Game struct {
@@ -314,7 +320,9 @@ func (g *Game) Vote() {
 }
 
 func (g *Game) Collect(player Player, text string) error {
-	return g.collector.Collect(player, text)
+	err := g.collector.Collect(player, text)
+	g.Host.Collected(player, g.collector.Complete())
+	return err
 }
 
 func (g *Game) Stop() {
