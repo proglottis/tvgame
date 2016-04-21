@@ -4,6 +4,7 @@ import (
 	"flag"
 	"html/template"
 	"log"
+	"math/rand"
 	"net/http"
 	"os"
 	"time"
@@ -26,12 +27,12 @@ func withLog(fn http.HandlerFunc) http.HandlerFunc {
 }
 
 func main() {
+	rand.Seed(time.Now().UTC().UnixNano())
 	flag.Parse()
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
 	}
-
 	csv, err := os.Open(flag.Arg(0))
 	if err != nil {
 		log.Fatal(err)
