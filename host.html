@@ -6,17 +6,25 @@
     <title>TV Game Host</title>
     <meta name="description" content="">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" href="css/host.css">
   </head>
   <body data-url="ws://{{$}}/ws">
-    <form>
-      <div><button type="submit">Start</button></div>
-    </form>
 
     <h1 class="lobby">Lobby: </h1>
 
     <h1>Players</h1>
     <ul class="players"></ul>
 
+    <form class="start" hidden>
+      <div><button type="submit">Start</button></div>
+    </form>
+
+    <div class="question" hidden>
+      <h1></h1>
+      <h2 class="timer">Time Remaining: <span class="seconds"></span> seconds</h2>
+    </div>
+
+    <br><br>
     <div id="log"></div>
 
     <script src="js/lib/jquery-2.2.1.min.js"></script>
