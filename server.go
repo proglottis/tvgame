@@ -59,6 +59,18 @@ func (h *RoomHost) Question(question *Question) {
 	h.Conn.Send <- msg
 }
 
+func (h *RoomHost) Vote(question *Question) {
+	var err error
+	msg := ConnMessage{Type: "vote"}
+	msg.Data, err = json.Marshal(questionMessage{Question: question})
+	if err != nil {
+		log.Printf("RoomHost: %s", err)
+		close(h.Conn.Send)
+		return
+	}
+	h.Conn.Send <- msg
+}
+
 type collectedMessage struct {
 	Player   Player
 	Complete bool

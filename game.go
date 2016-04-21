@@ -92,6 +92,7 @@ func (r *QuestionRepo) Answers(answers []*Answer) []*Answer {
 type Host interface {
 	Joined(player Player)
 	Question(question *Question)
+	Vote(question *Question)
 	Collected(player Player, complete bool)
 	Results(results *ResultSet)
 }
@@ -306,7 +307,7 @@ func (g *Game) broadcastQuestion() {
 
 func (g *Game) broadcastVote() {
 	question := g.Current()
-	g.Host.Question(question)
+	g.Host.Vote(question)
 	for player := range g.Players {
 		var answers []string
 		for _, answer := range question.Answers {

@@ -31,6 +31,7 @@ type testHost struct{}
 
 func (testHost) Joined(player Player)                   {}
 func (testHost) Question(question *Question)            {}
+func (testHost) Vote(question *Question)                {}
 func (testHost) Collected(player Player, complete bool) {}
 func (testHost) Results(results *ResultSet)             {}
 
