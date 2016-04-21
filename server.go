@@ -189,7 +189,8 @@ func (r *Room) Run() {
 		case msg, ok := <-r.Host.Recv:
 			if !ok {
 				// TODO: host quit
-				continue
+				log.Printf("Room: %s: Host quit", r.Code)
+				return
 			}
 			switch msg.Type {
 			case "begin":
