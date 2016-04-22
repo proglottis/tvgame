@@ -17,6 +17,7 @@ $(function() {
 
   function waiting() {
     $waiting.show();
+    $error.hide();
     $question.hide();
     $answer_form.hide();
     $answers.hide();
