@@ -73,6 +73,7 @@ $(function() {
       break;
     default:
       console.log("Uncaught message from voteCollection: " + event.data);
+      return lobby(event);
     }
     return voteCollection;
   }
@@ -92,6 +93,7 @@ $(function() {
       break;
     default:
       console.log("Uncaught message from answerCollection: " + event.data);
+      return lobby(event);
     }
     return answerCollection;
   }
@@ -138,6 +140,10 @@ $(function() {
       setTimeout(function () { conn.send(JSON.stringify({type: "next"})) }, 5000);
       break;
       // {"Type":"results","Data":{"Points":[{"Player":{"ID":"XJWKFEUYLX","Name":"ALSAQ"},"Total":1500}],"Offsets":[{"Answer":{"Correct":true,"Text":"EGYPT","Player":null,"Votes":[{"ID":"XJWKFEUYLX","Name":"ALSAQ"}]},"Offsets":[{"Player":{"ID":"XJWKFEUYLX","Name":"ALSAQ"},"Offset":1500}]}]}}
+    case "complete":
+      console.log('complete');
+      $('.game-title').text('Someone is the winner!');
+      break;
     default:
       console.log("Uncaught message from lobby: " + event.data);
     }

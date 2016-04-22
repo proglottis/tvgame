@@ -66,6 +66,7 @@ $(function() {
         return stateWaiting;
       default:
         appendLog("stateAnswering: " + action + ": " + JSON.stringify(data));
+        return stateWaiting(action, data);
     }
     return stateAnswering;
   }
@@ -77,6 +78,7 @@ $(function() {
         return stateWaiting;
       default:
         appendLog("stateVoting: " + action + ": " + JSON.stringify(data));
+        return stateWaiting(action, data);
     }
     return stateVoting;
   }
