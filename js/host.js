@@ -57,7 +57,7 @@ $(function() {
       var answers = $.map(data["Question"]["Answers"], function (answer) {
         return '<h2>' + answer["Text"] + '</h2>';
       });
-      $answers.html(answers.join('')).show();
+      $answers.html(answers.join('') + "<br><h1>Place your vote</h1>").show();
       // {"Type":"vote","Data":{"Question":{"Text":"In the city of Manchester (England) the Irk and Medlock join which river?","Multiplier":1,"Answers":[{"Correct":true,"Text":"IRWELL","Player":null,"Votes":null},{"Correct":false,"Text":"FOO","Player":{"ID":"04cdd7b5ca","Name":"25bb"},"Votes":null}]}}}
       break;
     case "collected":
