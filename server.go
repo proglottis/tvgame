@@ -99,7 +99,7 @@ type resultOffsets struct {
 
 type resultsMessage struct {
 	Points  []resultPoints
-	Offsets []resultOffsets
+	Offsets []resultOffsets `json:",omitempty"`
 }
 
 func (h *RoomHost) Results(game *Game, results ResultSet) {
@@ -112,6 +112,22 @@ func (h *RoomHost) Results(game *Game, results ResultSet) {
 		data.Offsets = append(data.Offsets, resultOffsets{Answer: answer, Offsets: result})
 	}
 	msg := ConnMessage{Type: "results"}
+	msg.Data, err = json.Marshal(data)
+	if err != nil {
+		log.Printf("RoomHost: %s", err)
+		close(h.Conn.Send)
+		return
+	}
+	h.Conn.Send <- msg
+}
+
+func (h *RoomHost) Complete(game *Game) {
+	var err error
+	data := &resultsMessage{}
+	for player, total := range game.Players {
+		data.Points = append(data.Points, resultPoints{Player: player, Total: total})
+	}
+	msg := ConnMessage{Type: "complete"}
 	msg.Data, err = json.Marshal(data)
 	if err != nil {
 		log.Printf("RoomHost: %s", err)
@@ -172,6 +188,10 @@ func (p *RoomPlayer) RequestVote(text string, answers []string) {
 		return
 	}
 	p.Conn.Send <- msg
+}
+
+func (p *RoomPlayer) Complete(game *Game) {
+	p.Conn.Send <- ConnMessage{Type: "complete"}
 }
 
 type Room struct {

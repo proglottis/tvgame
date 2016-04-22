@@ -94,11 +94,13 @@ type Host interface {
 	Vote(question *Question)
 	Collected(player Player, complete bool)
 	Results(game *Game, results ResultSet)
+	Complete(game *Game)
 }
 
 type Player interface {
 	RequestAnswer(question string)
 	RequestVote(question string, answers []string)
+	Complete(game *Game)
 }
 
 type Answer struct {
@@ -322,6 +324,10 @@ func (g *Game) broadcastResults(results ResultSet) {
 }
 
 func (g *Game) complete() {
+	g.Host.Complete(g)
+	for player := range g.Players {
+		player.Complete(g)
+	}
 }
 
 func (g *Game) Begin() {

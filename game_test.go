@@ -27,6 +27,7 @@ type testPlayer struct {
 
 func (testPlayer) RequestAnswer(question string)                 {}
 func (testPlayer) RequestVote(question string, answers []string) {}
+func (testPlayer) Complete(game *Game)                           {}
 
 type testHost struct{}
 
@@ -35,6 +36,7 @@ func (testHost) Question(question *Question)            {}
 func (testHost) Vote(question *Question)                {}
 func (testHost) Collected(player Player, complete bool) {}
 func (testHost) Results(game *Game, results ResultSet)  {}
+func (testHost) Complete(game *Game)                    {}
 
 func TestQuestionRepo_bad_format(t *testing.T) {
 	buf := bytes.NewBufferString(badFile)
