@@ -56,24 +56,18 @@ $(function() {
   function voteCollection(event) {
     var res   = JSON.parse(event.data),
         data  = res["Data"],
-        action = res["Type"],
-        mode  = 'answer';
+        action = res["Type"];
 
     switch (action) {
-    case "vote":
-      var question_text = data["Question"]["Text"];
-      var answers = $.map(data["Question"]["Answers"], function (answer) {
-        return '<h2>' + answer["Text"] + '</h2>';
-      });
-      $answers.html(answers.join('')).show();
-      $place_your_vote.show();
-      timer.reset();
-      // {"Type":"vote","Data":{"Question":{"Text":"In the city of Manchester (England) the Irk and Medlock join which river?","Multiplier":1,"Answers":[{"Correct":true,"Text":"IRWELL","Player":null,"Votes":null},{"Correct":false,"Text":"FOO","Player":{"ID":"04cdd7b5ca","Name":"25bb"},"Votes":null}]}}}
-      break;
     case "collected":
       // {"Type":"collected","Data":{"Player":{"ID":"948cce4fae","Name":"ff85"},"Complete":true}}
       if ( data["Complete"] ) {
-
+        console.log("received all votes");
+        conn.send(JSON.stringify({type: "stop"}));
+        timer.stop();
+        $timer.hide();
+        $place_your_vote.hide();
+        return lobby;
       }
       break;
     default:
@@ -92,7 +86,7 @@ $(function() {
       // {"Type":"collected","Data":{"Player":{"ID":"948cce4fae","Name":"ff85"},"Complete":true}}
       if ( data["Complete"] ) {
           conn.send(JSON.stringify({type: "vote"}));
-          return voteCollection;
+          return lobby;
       }
       break;
     default:
@@ -104,8 +98,7 @@ $(function() {
   function lobby(event) {
     var res   = JSON.parse(event.data),
         data  = res["Data"],
-        action = res["Type"],
-        mode  = 'answer';
+        action = res["Type"];
 
     switch (action) {
     case "create":
@@ -122,6 +115,16 @@ $(function() {
       $question.show().text(data["Question"]["Text"]);
       timer = new Timer($timer);
       return answerCollection;
+    case "vote":
+      var question_text = data["Question"]["Text"];
+      var answers = $.map(data["Question"]["Answers"], function (answer) {
+        return '<h2>' + answer["Text"] + '</h2>';
+      });
+      $answers.html(answers.join('')).show();
+      $place_your_vote.show();
+      timer.reset();
+      // {"Type":"vote","Data":{"Question":{"Text":"In the city of Manchester (England) the Irk and Medlock join which river?","Multiplier":1,"Answers":[{"Correct":true,"Text":"IRWELL","Player":null,"Votes":null},{"Correct":false,"Text":"FOO","Player":{"ID":"04cdd7b5ca","Name":"25bb"},"Votes":null}]}}}
+      return voteCollection;
     default:
       console.log("Uncaught message from lobby: " + event.data);
     }
