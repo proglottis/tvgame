@@ -4,7 +4,7 @@ $(function() {
   var $players  = $(".players"),
       $start    = $(".start"),
       $question = $(".question"),
-      $answers  = $question.find('.answers'),
+      $answers  = $(".answers"),
       $join     = $(".join"),
       $timer     = $(".timer"),
       $lobby    = $(".lobby"),
@@ -53,10 +53,11 @@ $(function() {
 
     switch (action) {
     case "vote":
-      var html = $.map(data["Question"]["Answers"], function (answer) {
-        return '<li>' + answer["Text"] + '</li>';
+      var question_text = data["Question"]["Text"];
+      var answers = $.map(data["Question"]["Answers"], function (answer) {
+        return '<h2>' + answer["Text"] + '</h2>';
       });
-      $answers.html(html.join('')).show();
+      $answers.html(answers.join('')).show();
       // {"Type":"vote","Data":{"Question":{"Text":"In the city of Manchester (England) the Irk and Medlock join which river?","Multiplier":1,"Answers":[{"Correct":true,"Text":"IRWELL","Player":null,"Votes":null},{"Correct":false,"Text":"FOO","Player":{"ID":"04cdd7b5ca","Name":"25bb"},"Votes":null}]}}}
       break;
     case "collected":
@@ -109,7 +110,7 @@ $(function() {
       $start.hide();
       $join.hide();
       $timer.show();
-      $question.show().find('h1').text(data["Question"]["Text"]);
+      $question.show().text(data["Question"]["Text"]);
       timer = new Timer($timer);
       return answerCollection;
     default:
