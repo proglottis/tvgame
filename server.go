@@ -241,7 +241,11 @@ func (r *Room) Run() {
 			}
 			player.Name = CleanText(player.Name)
 			if len(player.Name) < 1 {
-				player.SendError("Name is required")
+				player.SendError("Name is too short (min 1)")
+				continue
+			}
+			if len(player.Name) > 10 {
+				player.SendError("Name is too long (max 10)")
 				continue
 			}
 			nameTaken := false
