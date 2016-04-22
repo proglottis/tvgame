@@ -46,8 +46,9 @@ button {
 }
 
 .main {
+  background-image: url("green-background.jpg");
+  background-size: cover;
   padding: 0 30px;
-  background: #589C3F;
   flex: 2;
   display: flex;
   flex-direction: column;
