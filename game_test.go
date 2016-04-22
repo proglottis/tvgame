@@ -34,7 +34,7 @@ func (testHost) Joined(player Player)                   {}
 func (testHost) Question(question *Question)            {}
 func (testHost) Vote(question *Question)                {}
 func (testHost) Collected(player Player, complete bool) {}
-func (testHost) Results(results *ResultSet)             {}
+func (testHost) Results(game *Game, results ResultSet)  {}
 
 func TestQuestionRepo_bad_format(t *testing.T) {
 	buf := bytes.NewBufferString(badFile)
@@ -90,17 +90,17 @@ func TestNewResultSet(t *testing.T) {
 	}
 
 	results := NewResultSet(question)
-	if len(results.Points) > 0 {
-		t.Errorf("Expected empty result set, got %#v", results.Points)
+	if len(results) > 0 {
+		t.Errorf("Expected empty result set, got %#v", results)
 	}
 
 	a1.Votes = append(a1.Votes, p1)
 	a2.Votes = append(a2.Votes, p2)
 	results = NewResultSet(question)
-	if results.Points[a1][0].Player != p1 {
+	if results[a1][0].Player != p1 {
 		t.Errorf("Expected p1 to get points for correct answer")
 	}
-	if results.Points[a2][0].Player != p1 {
+	if results[a2][0].Player != p1 {
 		t.Errorf("Expected p1 to get points for p2's incorrect answer")
 	}
 }

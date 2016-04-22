@@ -93,7 +93,7 @@ type Host interface {
 	Question(question *Question)
 	Vote(question *Question)
 	Collected(player Player, complete bool)
-	Results(results *ResultSet)
+	Results(game *Game, results ResultSet)
 }
 
 type Player interface {
@@ -143,17 +143,15 @@ type Result struct {
 	Offset int
 }
 
-type ResultSet struct {
-	Points map[*Answer][]Result
-}
+type ResultSet map[*Answer][]Result
 
-func NewResultSet(q *Question) *ResultSet {
-	r := &ResultSet{Points: make(map[*Answer][]Result)}
+func NewResultSet(q *Question) ResultSet {
+	r := make(map[*Answer][]Result)
 	for _, answer := range q.Answers {
 		creatorOffset := 0
 		for _, vote := range answer.Votes {
 			if answer.Correct {
-				r.Points[answer] = append(r.Points[answer], Result{
+				r[answer] = append(r[answer], Result{
 					Player: vote,
 					Offset: correctPoints * q.Multiplier,
 				})
@@ -161,7 +159,7 @@ func NewResultSet(q *Question) *ResultSet {
 			creatorOffset += creatorPoints
 		}
 		if creatorOffset > 0 && answer.Player != nil {
-			r.Points[answer] = append(r.Points[answer], Result{
+			r[answer] = append(r[answer], Result{
 				Player: answer.Player,
 				Offset: creatorOffset * q.Multiplier,
 			})
@@ -319,8 +317,8 @@ func (g *Game) broadcastVote() {
 	}
 }
 
-func (g *Game) broadcastResults(results *ResultSet) {
-	g.Host.Results(results)
+func (g *Game) broadcastResults(results ResultSet) {
+	g.Host.Results(g, results)
 }
 
 func (g *Game) complete() {
@@ -354,7 +352,7 @@ func (g *Game) Collect(player Player, text string) error {
 func (g *Game) Stop() {
 	g.collector = NonCollector{}
 	results := NewResultSet(g.Current())
-	for _, points := range results.Points {
+	for _, points := range results {
 		for _, offset := range points {
 			g.Players[offset.Player] += offset.Offset
 		}

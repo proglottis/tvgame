@@ -87,10 +87,23 @@ func (h *RoomHost) Collected(player Player, complete bool) {
 	h.Conn.Send <- msg
 }
 
-func (h *RoomHost) Results(results *ResultSet) {
+type resultPoints struct {
+	Player Player
+	Total  int
+}
+
+type resultsMessage struct {
+	Points []resultPoints
+}
+
+func (h *RoomHost) Results(game *Game, results ResultSet) {
 	var err error
+	data := &resultsMessage{}
+	for player, total := range game.Players {
+		data.Points = append(data.Points, resultPoints{Player: player, Total: total})
+	}
 	msg := ConnMessage{Type: "results"}
-	msg.Data, err = json.Marshal(results)
+	msg.Data, err = json.Marshal(data)
 	if err != nil {
 		log.Printf("RoomHost: %s", err)
 		close(h.Conn.Send)
