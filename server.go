@@ -92,8 +92,14 @@ type resultPoints struct {
 	Total  int
 }
 
+type resultOffsets struct {
+	Answer  *Answer
+	Offsets []Result
+}
+
 type resultsMessage struct {
-	Points []resultPoints
+	Points  []resultPoints
+	Offsets []resultOffsets
 }
 
 func (h *RoomHost) Results(game *Game, results ResultSet) {
@@ -101,6 +107,9 @@ func (h *RoomHost) Results(game *Game, results ResultSet) {
 	data := &resultsMessage{}
 	for player, total := range game.Players {
 		data.Points = append(data.Points, resultPoints{Player: player, Total: total})
+	}
+	for answer, result := range results {
+		data.Offsets = append(data.Offsets, resultOffsets{Answer: answer, Offsets: result})
 	}
 	msg := ConnMessage{Type: "results"}
 	msg.Data, err = json.Marshal(data)
