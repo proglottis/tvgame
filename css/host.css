@@ -24,11 +24,17 @@ button {
   font-size: x-large;
 }
 
-.answers > li {
-  font-weight: bold;
-  padding-bottom: 18px;
-  font-size: 20px;
-  list-style-position: inside;
+.answers {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: space-between;
+}
+
+.answers > h2 {
+  margin: 40px;
+  background: #000;
+  padding: 20px;
 }
 
 .container {

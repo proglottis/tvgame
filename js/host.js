@@ -1,13 +1,14 @@
 "use strict";
 
 $(function() {
-  var $players  = $(".players"),
-      $start    = $(".start"),
-      $question = $(".question"),
-      $answers  = $(".answers"),
-      $join     = $(".join"),
-      $timer     = $(".timer"),
-      $lobby    = $(".lobby"),
+  var $players         = $(".players"),
+      $start           = $(".start"),
+      $question        = $(".question"),
+      $answers         = $(".answers"),
+      $join            = $(".join"),
+      $timer           = $(".timer"),
+      $lobby           = $(".lobby"),
+      $place_your_vote = $('.place-your-vote'),
       timer;
 
   var Timer = function (el) {
@@ -64,7 +65,8 @@ $(function() {
       var answers = $.map(data["Question"]["Answers"], function (answer) {
         return '<h2>' + answer["Text"] + '</h2>';
       });
-      $answers.html(answers.join('') + "<br><h1>Place your vote</h1>").show();
+      $answers.html(answers.join('')).show();
+      $place_your_vote.show();
       timer.reset();
       // {"Type":"vote","Data":{"Question":{"Text":"In the city of Manchester (England) the Irk and Medlock join which river?","Multiplier":1,"Answers":[{"Correct":true,"Text":"IRWELL","Player":null,"Votes":null},{"Correct":false,"Text":"FOO","Player":{"ID":"04cdd7b5ca","Name":"25bb"},"Votes":null}]}}}
       break;
