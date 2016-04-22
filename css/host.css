@@ -56,6 +56,11 @@ button {
   justify-content: space-around;
 }
 
+.scoreboard {
+  font-size: 44px;
+  width: 390px;
+}
+
 .aside {
   padding: 60px 0;
   justify-content: center;

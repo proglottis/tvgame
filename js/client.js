@@ -115,6 +115,7 @@ $(function() {
     conn.send(JSON.stringify({Type: 'answer', Data: {
       Text: $('textarea[name=answer]').val()
     }}))
+    $('textarea[name=answer]').val('');
   });
 
   $answers.click(function (event) {

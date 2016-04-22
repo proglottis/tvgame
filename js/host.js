@@ -9,6 +9,7 @@ $(function() {
       $timer           = $(".timer"),
       $lobby           = $(".lobby"),
       $place_your_vote = $('.place-your-vote'),
+      $scoreboard = $('.scoreboard'),
       timer;
 
   var Timer = function (el) {
@@ -110,6 +111,7 @@ $(function() {
     case "question":
       // {"Type":"question","Data":{"Question":{"Text":"In which year were premium bonds first issued in Britain?","Multiplier":1,"Answers":[{"Correct":true,"Text":"1956","Player":null,"Votes":null}]}}}
       $start.hide();
+      $scoreboard.hide();
       $join.hide();
       $timer.show();
       $question.show().text(data["Question"]["Text"]);
@@ -125,6 +127,17 @@ $(function() {
       timer.reset();
       // {"Type":"vote","Data":{"Question":{"Text":"In the city of Manchester (England) the Irk and Medlock join which river?","Multiplier":1,"Answers":[{"Correct":true,"Text":"IRWELL","Player":null,"Votes":null},{"Correct":false,"Text":"FOO","Player":{"ID":"04cdd7b5ca","Name":"25bb"},"Votes":null}]}}}
       return voteCollection;
+    case "results":
+      console.log('received scores');
+      $question.hide();
+      $answers.hide();
+      var scores = $.map(data["Points"], function (score) {
+        return '<tr><td>' + score["Player"]["Name"] + '</td><td>' + score["Total"] + '</td></tr>';
+      });
+      $scoreboard.show().find('tbody').html(scores.join(''));
+      setTimeout(function () { conn.send(JSON.stringify({type: "next"})) }, 5000);
+      break;
+      // {"Type":"results","Data":{"Points":[{"Player":{"ID":"XJWKFEUYLX","Name":"ALSAQ"},"Total":1500}],"Offsets":[{"Answer":{"Correct":true,"Text":"EGYPT","Player":null,"Votes":[{"ID":"XJWKFEUYLX","Name":"ALSAQ"}]},"Offsets":[{"Player":{"ID":"XJWKFEUYLX","Name":"ALSAQ"},"Offset":1500}]}]}}
     default:
       console.log("Uncaught message from lobby: " + event.data);
     }
