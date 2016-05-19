@@ -115,6 +115,7 @@ $(function() {
       $start.hide();
       $scoreboard.hide();
       $join.hide();
+      $place_your_vote.hide();
       $timer.show();
       $question.show().text(data["Question"]["Text"]);
       timer = new Timer($timer);
@@ -131,9 +132,11 @@ $(function() {
       return voteCollection;
     case "results":
       console.log('received scores');
+      $place_your_vote.hide();
+      $timer.hide();
       $question.hide();
       $answers.hide();
-      var scores = $.map(data["Points"], function (score) {
+      var scores = $.map(data["Points"].sort(function(a, b) { return b["Total"] - a["Total"]; }), function (score) {
         return '<tr><td>' + score["Player"]["Name"] + '</td><td>' + score["Total"] + '</td></tr>';
       });
       $scoreboard.show().find('tbody').html(scores.join(''));
