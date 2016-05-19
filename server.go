@@ -2,10 +2,100 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"math/rand"
 	"sync"
+
+	"github.com/proglottis/tvgame/game"
+	"golang.org/x/net/context"
 )
+
+type JoinRequest struct {
+	Name string
+	Code string
+}
+
+type Server struct {
+	Repo *game.QuestionRepo
+
+	mu    sync.RWMutex
+	rooms map[string]*Room
+}
+
+func NewServer(repo *game.QuestionRepo) *Server {
+	return &Server{
+		Repo:  repo,
+		rooms: make(map[string]*Room),
+	}
+}
+
+func (s *Server) Handle(ctx context.Context, conn *Conn) error {
+	var msg ConnMessage
+	if err := conn.Read(&msg); err != nil {
+		return err
+	}
+	switch msg.Type {
+	case "create":
+		return s.CreateRoom(ctx, conn)
+	case "join":
+		var req JoinRequest
+		if err := json.Unmarshal(msg.Data, &req); err != nil {
+			return err
+		}
+		return s.JoinRoom(ctx, conn, &req)
+	default:
+		return fmt.Errorf("Unknown message: %s", msg.Type)
+	}
+}
+
+func (s *Server) detachRoom(code string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	log.Printf("Server: Detaching room: %s", code)
+	delete(s.rooms, code)
+}
+
+func (s *Server) createRoom(conn *Conn) *Room {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	room := NewRoom(s.Repo, conn)
+	for {
+		room.Code = generateCode(4)
+		if _, ok := s.rooms[room.Code]; !ok {
+			break
+		}
+	}
+	s.rooms[room.Code] = room
+	return room
+}
+
+func (s *Server) CreateRoom(ctx context.Context, conn *Conn) error {
+	room := s.createRoom(conn)
+	log.Printf("Server: room %s created", room.Code)
+	detach := func() {
+		s.detachRoom(room.Code)
+	}
+	return room.Host().Run(ctx, room, detach)
+}
+
+func (s *Server) JoinRoom(ctx context.Context, conn *Conn, msg *JoinRequest) error {
+	msg.Code = game.CleanText(msg.Code)
+	s.mu.RLock()
+	room, ok := s.rooms[msg.Code]
+	s.mu.RUnlock()
+	if !ok {
+		return fmt.Errorf("No such room: %s", msg.Code)
+	}
+	player := &RoomPlayer{ID: generateCode(10), Name: game.CleanText(msg.Name), Conn: conn}
+	if err := room.AddPlayer(player); err != nil {
+		player.SendError(err.Error())
+		return err
+	}
+	log.Printf("Server: joined player to room %s", msg.Code)
+	player.SendAck()
+	return player.Run(ctx, room)
+}
 
 const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
@@ -14,384 +104,5 @@ func generateCode(n int) string {
 	for i := range msg {
 		msg[i] = letters[rand.Intn(len(letters))]
 	}
-	return CleanText(string(msg))
-}
-
-type PlayerText struct {
-	Text   string
-	Player *RoomPlayer `json:"-"`
-}
-
-type RoomHost struct {
-	Conn *Conn
-}
-
-type joinedMessage struct {
-	Player Player
-}
-
-func (h *RoomHost) Joined(player Player) {
-	var err error
-	msg := ConnMessage{Type: "joined"}
-	msg.Data, err = json.Marshal(joinedMessage{Player: player})
-	if err != nil {
-		log.Printf("RoomHost: %s", err)
-		close(h.Conn.Send)
-		return
-	}
-	h.Conn.Send <- msg
-}
-
-type questionMessage struct {
-	Question *Question
-}
-
-func (h *RoomHost) Question(question *Question) {
-	var err error
-	msg := ConnMessage{Type: "question"}
-	msg.Data, err = json.Marshal(questionMessage{Question: question})
-	if err != nil {
-		log.Printf("RoomHost: %s", err)
-		close(h.Conn.Send)
-		return
-	}
-	h.Conn.Send <- msg
-}
-
-func (h *RoomHost) Vote(question *Question) {
-	var err error
-	msg := ConnMessage{Type: "vote"}
-	msg.Data, err = json.Marshal(questionMessage{Question: question})
-	if err != nil {
-		log.Printf("RoomHost: %s", err)
-		close(h.Conn.Send)
-		return
-	}
-	h.Conn.Send <- msg
-}
-
-type collectedMessage struct {
-	Player   Player
-	Complete bool
-}
-
-func (h *RoomHost) Collected(player Player, complete bool) {
-	var err error
-	msg := ConnMessage{Type: "collected"}
-	msg.Data, err = json.Marshal(collectedMessage{Player: player, Complete: complete})
-	if err != nil {
-		log.Printf("RoomHost: %s", err)
-		close(h.Conn.Send)
-		return
-	}
-	h.Conn.Send <- msg
-}
-
-type resultPoints struct {
-	Player Player
-	Total  int
-}
-
-type resultOffsets struct {
-	Answer  *Answer
-	Offsets []Result
-}
-
-type resultsMessage struct {
-	Points  []resultPoints
-	Offsets []resultOffsets `json:",omitempty"`
-}
-
-func (h *RoomHost) Results(game *Game, results ResultSet) {
-	var err error
-	data := &resultsMessage{}
-	for player, total := range game.Players {
-		data.Points = append(data.Points, resultPoints{Player: player, Total: total})
-	}
-	for answer, result := range results {
-		data.Offsets = append(data.Offsets, resultOffsets{Answer: answer, Offsets: result})
-	}
-	msg := ConnMessage{Type: "results"}
-	msg.Data, err = json.Marshal(data)
-	if err != nil {
-		log.Printf("RoomHost: %s", err)
-		close(h.Conn.Send)
-		return
-	}
-	h.Conn.Send <- msg
-}
-
-func (h *RoomHost) Complete(game *Game) {
-	var err error
-	data := &resultsMessage{}
-	for player, total := range game.Players {
-		data.Points = append(data.Points, resultPoints{Player: player, Total: total})
-	}
-	msg := ConnMessage{Type: "complete"}
-	msg.Data, err = json.Marshal(data)
-	if err != nil {
-		log.Printf("RoomHost: %s", err)
-		close(h.Conn.Send)
-		return
-	}
-	h.Conn.Send <- msg
-}
-
-type RoomPlayer struct {
-	ID   string
-	Name string
-	Conn *Conn `json:"-"`
-}
-
-func (p *RoomPlayer) SendError(text string) {
-	var err error
-	msg := ConnMessage{Type: "error"}
-	msg.Data, err = json.Marshal(errorMessage{Text: text})
-	if err != nil {
-		log.Printf("RoomPlayer: %s", err)
-		return
-	}
-	p.Conn.Send <- msg
-}
-
-func (p *RoomPlayer) SendAck() {
-	msg := ConnMessage{Type: "ok"}
-	p.Conn.Send <- msg
-}
-
-type requestAnswerMessage struct {
-	Text string
-}
-
-func (p *RoomPlayer) RequestAnswer(text string) {
-	var err error
-	msg := ConnMessage{Type: "answer"}
-	msg.Data, err = json.Marshal(requestAnswerMessage{Text: text})
-	if err != nil {
-		log.Printf("RoomPlayer: %s", err)
-		return
-	}
-	p.Conn.Send <- msg
-}
-
-type requestVoteMessage struct {
-	Text    string
-	Answers []string
-}
-
-func (p *RoomPlayer) RequestVote(text string, answers []string) {
-	var err error
-	msg := ConnMessage{Type: "vote"}
-	msg.Data, err = json.Marshal(requestVoteMessage{Text: text, Answers: answers})
-	if err != nil {
-		log.Printf("RoomPlayer: %s", err)
-		return
-	}
-	p.Conn.Send <- msg
-}
-
-func (p *RoomPlayer) Complete(game *Game) {
-	p.Conn.Send <- ConnMessage{Type: "complete"}
-}
-
-type Room struct {
-	Code           string
-	Game           *Game
-	Host           *Conn
-	LobbyDone      chan<- string
-	Join           chan *RoomPlayer
-	playerMessages chan PlayerText
-}
-
-func NewRoom(repo *QuestionRepo, host *Conn) *Room {
-	h := &RoomHost{Conn: host}
-	return &Room{
-		Game:           NewGame(repo, h),
-		Host:           host,
-		Join:           make(chan *RoomPlayer),
-		playerMessages: make(chan PlayerText),
-	}
-}
-
-type roomMessage struct {
-	Code string
-}
-
-func (r *Room) Run() {
-	var err error
-	msg := ConnMessage{Type: "create"}
-	msg.Data, err = json.Marshal(roomMessage{Code: r.Code})
-	if err != nil {
-		panic(err)
-	}
-	r.Host.Send <- msg
-
-	for {
-		select {
-		case msg, ok := <-r.Host.Recv:
-			if !ok {
-				// TODO: host quit
-				log.Printf("Room: %s: Host quit", r.Code)
-				return
-			}
-			switch msg.Type {
-			case "begin":
-				r.Game.Begin()
-			case "next":
-				r.Game.Next()
-			case "vote":
-				r.Game.Vote()
-			case "stop":
-				r.Game.Stop()
-			}
-		case msg, ok := <-r.playerMessages:
-			if !ok {
-				r.playerMessages = nil
-				continue
-			}
-			if err := r.Game.Collect(msg.Player, msg.Text); err != nil {
-				msg.Player.SendError(err.Error())
-				continue
-			}
-			msg.Player.SendAck()
-		case player, ok := <-r.Join:
-			if !ok {
-				r.Join = nil
-				continue
-			}
-			player.Name = CleanText(player.Name)
-			if len(player.Name) < 1 {
-				player.SendError("Name is too short (min 1)")
-				continue
-			}
-			if len(player.Name) > 10 {
-				player.SendError("Name is too long (max 10)")
-				continue
-			}
-			nameTaken := false
-			for other := range r.Game.Players {
-				if other.(*RoomPlayer).Name == player.Name {
-					nameTaken = true
-					break
-				}
-			}
-			if nameTaken {
-				player.SendError("Name is taken")
-				continue
-			}
-			if err := r.Game.AddPlayer(player); err != nil {
-				player.SendError(err.Error())
-				continue
-			}
-			player.SendAck()
-			go func() {
-				for msg := range player.Conn.Recv {
-					var text PlayerText
-					if err := json.Unmarshal(msg.Data, &text); err != nil {
-						panic(err)
-					}
-					text.Player = player
-					r.playerMessages <- text
-				}
-			}()
-		}
-	}
-}
-
-type lobbyMessage struct {
-	Name string
-	Code string
-}
-
-type Lobby struct {
-	Repo *QuestionRepo
-	done <-chan string
-
-	mu    sync.RWMutex
-	rooms map[string]chan<- *RoomPlayer
-}
-
-func NewLobby(repo *QuestionRepo) *Lobby {
-	return &Lobby{
-		Repo:  repo,
-		done:  make(chan string),
-		rooms: make(map[string]chan<- *RoomPlayer),
-	}
-}
-
-func (l *Lobby) Run() {
-	for code := range l.done {
-		l.detatch(code)
-	}
-}
-
-func (l *Lobby) create(conn *Conn) {
-	l.mu.Lock()
-	defer l.mu.Unlock()
-	room := NewRoom(l.Repo, conn)
-	for {
-		room.Code = generateCode(5)
-		if _, ok := l.rooms[room.Code]; !ok {
-			break
-		}
-	}
-	go room.Run()
-	l.rooms[room.Code] = room.Join
-}
-
-func (l *Lobby) detatch(code string) {
-	l.mu.Lock()
-	defer l.mu.Unlock()
-	room, ok := l.rooms[code]
-	if !ok {
-		log.Printf("Lobby: No such room to detach: %s", code)
-		return
-	}
-	close(room)
-	delete(l.rooms, code)
-	log.Printf("Lobby: Detached room: %s", code)
-}
-
-func (l *Lobby) join(conn *Conn, name, code string) {
-	l.mu.RLock()
-	defer l.mu.RUnlock()
-	code = CleanText(code)
-	room, ok := l.rooms[code]
-	if !ok {
-		log.Printf("Lobby: No such room to join: %s", code)
-		close(conn.Send)
-		return
-	}
-	room <- &RoomPlayer{ID: generateCode(10), Name: name, Conn: conn}
-}
-
-func (l *Lobby) Handle(conn *Conn) {
-	// runs within the HTTP handler go routine
-	for msg := range conn.Recv {
-		switch msg.Type {
-		case "create":
-			l.create(conn)
-			return
-		case "join":
-			var lobby lobbyMessage
-			if err := json.Unmarshal(msg.Data, &lobby); err != nil {
-				var e error
-				msg := ConnMessage{Type: "error"}
-				msg.Data, e = json.Marshal(errorMessage{Text: err.Error()})
-				if e != nil {
-					log.Printf("Lobby: %s", e)
-					close(conn.Send)
-					return
-				}
-				conn.Send <- msg
-				continue
-			}
-			l.join(conn, lobby.Name, lobby.Code)
-			return
-		}
-	}
-}
-
-type errorMessage struct {
-	Text string
+	return game.CleanText(string(msg))
 }

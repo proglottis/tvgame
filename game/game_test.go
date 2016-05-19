@@ -1,4 +1,4 @@
-package main
+package game
 
 import (
 	"bytes"
@@ -113,8 +113,8 @@ func TestAnswerCollector_Collect(t *testing.T) {
 	question := &Question{Text: "Fruit?"}
 	collector := AnswerCollector{Question: question, Remaining: 2}
 
-	if err := collector.Collect(p1, " "); err != ShortAnswerError {
-		t.Errorf("Expected ShortAnswerError, got %s", err)
+	if err := collector.Collect(p1, " "); err != ErrShortAnswer {
+		t.Errorf("Expected ErrShortAnswer, got %s", err)
 	}
 	if err := collector.Collect(p1, "Apple"); err != nil {
 		t.Errorf("Expected success, got %s", err)
@@ -122,11 +122,11 @@ func TestAnswerCollector_Collect(t *testing.T) {
 	if collector.Remaining != 1 {
 		t.Errorf("Expected 1 remaining answer, got %d", collector.Remaining)
 	}
-	if err := collector.Collect(p1, "Banana"); err != CompletedError {
-		t.Errorf("Expected CompletedError, got %s", err)
+	if err := collector.Collect(p1, "Banana"); err != ErrCompleted {
+		t.Errorf("Expected ErrCompleted, got %s", err)
 	}
-	if err := collector.Collect(p2, "Apple"); err != DupAnswerError {
-		t.Errorf("Expected DupAnswerError, got %s", err)
+	if err := collector.Collect(p2, "Apple"); err != ErrDupAnswer {
+		t.Errorf("Expected ErrDupAnswer, got %s", err)
 	}
 	if err := collector.Collect(p2, "Banana"); err != nil {
 		t.Errorf("Expected success, got %s", err)
@@ -161,8 +161,8 @@ func TestVoteCollector_Collect(t *testing.T) {
 	}
 	collector := VoteCollector{Question: question, Remaining: 2}
 
-	if err := collector.Collect(p1, "Carrot"); err != OwnAnswerError {
-		t.Errorf("Expected OwnAnswerError, got %s", err)
+	if err := collector.Collect(p1, "Carrot"); err != ErrOwnAnswer {
+		t.Errorf("Expected ErrOwnAnswer, got %s", err)
 	}
 	if err := collector.Collect(p1, "Apple"); err != nil {
 		t.Errorf("Expected success, got %s", err)
@@ -170,11 +170,11 @@ func TestVoteCollector_Collect(t *testing.T) {
 	if collector.Remaining != 1 {
 		t.Errorf("Expected 1 remaining answer, got %d", collector.Remaining)
 	}
-	if err := collector.Collect(p1, "Banana"); err != CompletedError {
-		t.Errorf("Expected CompletedError, got %s", err)
+	if err := collector.Collect(p1, "Banana"); err != ErrCompleted {
+		t.Errorf("Expected ErrCompleted, got %s", err)
 	}
-	if err := collector.Collect(p2, "Nonexistent"); err != NoAnswerError {
-		t.Errorf("Expected NoAnswerError, got %s", err)
+	if err := collector.Collect(p2, "Nonexistent"); err != ErrNoAnswer {
+		t.Errorf("Expected ErrNoAnswer, got %s", err)
 	}
 	if err := collector.Collect(p2, "Apple"); err != nil {
 		t.Errorf("Expected success, got %s", err)
@@ -199,14 +199,14 @@ func TestVoteCollector_Complete(t *testing.T) {
 func TestGame_AddPlayer(t *testing.T) {
 	host := &testHost{}
 	repo := newRepo(t)
-	game := NewGame(repo, host)
+	game := New(repo, host)
 	for i := 0; i < maxPlayers; i++ {
 		if err := game.AddPlayer(&testPlayer{Name: fmt.Sprintf("%d", i+1)}); err != nil {
 			t.Fatalf("Expected success, got %s", err)
 		}
 	}
-	if err := game.AddPlayer(&testPlayer{Name: "too many"}); err != RoomFullError {
-		t.Fatalf("Expected RoomFullError, got %s", err)
+	if err := game.AddPlayer(&testPlayer{Name: "too many"}); err != ErrRoomFull {
+		t.Fatalf("Expected ErrRoomFull, got %s", err)
 	}
 }
 
@@ -215,7 +215,7 @@ func TestGame_p1_always_wins(t *testing.T) {
 	p1 := &testPlayer{Name: "B1"}
 	p2 := &testPlayer{Name: "B2"}
 	repo := newRepo(t)
-	game := NewGame(repo, host)
+	game := New(repo, host)
 	if len(game.Questions) != 7 {
 		t.Fatalf("Expected 7 questions")
 	}
@@ -246,7 +246,7 @@ func TestGame_p1_always_wins(t *testing.T) {
 	}
 }
 
-func newRepo(t *testing.T) *QuestionRepo {
+func newRepo(t testing.TB) *QuestionRepo {
 	buf := bytes.NewBufferString(questionFile)
 	repo, err := NewQuestionRepo(buf)
 	if err != nil {

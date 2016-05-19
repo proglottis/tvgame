@@ -1,4 +1,4 @@
-package main
+package game
 
 import (
 	"encoding/csv"
@@ -15,13 +15,13 @@ const (
 )
 
 var (
-	CompletedError   = errors.New("Already completed")
-	NoAnswerError    = errors.New("No such answer")
-	DupAnswerError   = errors.New("Answer already exists")
-	OwnAnswerError   = errors.New("Choose own answer")
-	ShortAnswerError = errors.New("Answer is too short")
-	LongAnswerError  = errors.New("Answer is too long")
-	RoomFullError    = errors.New("Room is full")
+	ErrCompleted   = errors.New("Already completed")
+	ErrNoAnswer    = errors.New("No such answer")
+	ErrDupAnswer   = errors.New("Answer already exists")
+	ErrOwnAnswer   = errors.New("Choose own answer")
+	ErrShortAnswer = errors.New("Answer is too short")
+	ErrLongAnswer  = errors.New("Answer is too long")
+	ErrRoomFull    = errors.New("Room is full")
 )
 
 type record struct {
@@ -174,7 +174,7 @@ type NonCollector struct {
 }
 
 func (c NonCollector) Collect(player Player, text string) error {
-	return CompletedError
+	return ErrCompleted
 }
 
 func (c NonCollector) Complete() bool {
@@ -188,31 +188,31 @@ type AnswerCollector struct {
 
 func (c *AnswerCollector) Collect(player Player, text string) error {
 	if c.Complete() {
-		return CompletedError
+		return ErrCompleted
 	}
 	var answer *Answer
 	text = CleanText(text)
 	if len(text) < 1 {
-		return ShortAnswerError
+		return ErrShortAnswer
 	}
 	if len(text) > 50 {
-		return LongAnswerError
+		return ErrLongAnswer
 	}
 	for _, a := range c.Question.Answers {
 		if a.Player == player {
 			answer = a
 		}
 		if a.Text == text {
-			return DupAnswerError
+			return ErrDupAnswer
 		}
 	}
 	if answer != nil {
-		return CompletedError
+		return ErrCompleted
 	}
 	answer = &Answer{Text: text, Player: player}
 	c.Question.Answers = append(c.Question.Answers, answer)
 	sort.Sort(c.Question.Answers)
-	c.Remaining -= 1
+	c.Remaining--
 	return nil
 }
 
@@ -227,7 +227,7 @@ type VoteCollector struct {
 
 func (c *VoteCollector) Collect(player Player, text string) error {
 	if c.Complete() {
-		return CompletedError
+		return ErrCompleted
 	}
 	var answer *Answer
 	for _, a := range c.Question.Answers {
@@ -235,17 +235,17 @@ func (c *VoteCollector) Collect(player Player, text string) error {
 			answer = a
 		}
 		if a.HasVoted(player) {
-			return CompletedError
+			return ErrCompleted
 		}
 	}
 	if answer == nil {
-		return NoAnswerError
+		return ErrNoAnswer
 	}
 	if answer.Player == player {
-		return OwnAnswerError
+		return ErrOwnAnswer
 	}
 	answer.Votes = append(answer.Votes, player)
-	c.Remaining -= 1
+	c.Remaining--
 	return nil
 }
 
@@ -266,7 +266,7 @@ type Game struct {
 	collector Collector
 }
 
-func NewGame(repo *QuestionRepo, host Host) *Game {
+func New(repo *QuestionRepo, host Host) *Game {
 	game := &Game{
 		Host:      host,
 		Questions: make([]*Question, 0, 7),
@@ -288,7 +288,7 @@ func NewGame(repo *QuestionRepo, host Host) *Game {
 
 func (g *Game) AddPlayer(players ...Player) error {
 	if len(g.Players)+len(players) > maxPlayers {
-		return RoomFullError
+		return ErrRoomFull
 	}
 	for _, p := range players {
 		g.Players[p] = 0
@@ -371,7 +371,7 @@ func (g *Game) Current() *Question {
 }
 
 func (g *Game) Next() {
-	g.current += 1
+	g.current++
 	if g.current >= len(g.Questions) {
 		g.complete()
 		return

@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
+	"golang.org/x/net/context"
 )
 
 const (
@@ -25,69 +26,71 @@ const (
 type ConnMessage struct {
 	Type string
 	Data json.RawMessage `json:",omitempty"`
+	err  error
 }
 
 type Conn struct {
-	ws   *websocket.Conn
-	Send chan ConnMessage
-	Recv chan ConnMessage
+	ws     *websocket.Conn
+	send   chan ConnMessage
+	cancel context.CancelFunc
 }
 
-func NewConn(ws *websocket.Conn) *Conn {
+func NewConn(ctx context.Context, ws *websocket.Conn) *Conn {
 	conn := &Conn{
 		ws:   ws,
-		Send: make(chan ConnMessage),
-		Recv: make(chan ConnMessage),
+		send: make(chan ConnMessage),
 	}
-	go conn.readPump()
-	go conn.writePump()
+	ctx, conn.cancel = context.WithCancel(ctx)
+	conn.ws.SetReadLimit(maxMessageSize)
+	conn.ws.SetReadDeadline(time.Now().Add(pongWait))
+	conn.ws.SetPongHandler(func(string) error { ws.SetReadDeadline(time.Now().Add(pongWait)); return nil })
+	go conn.writePump(ctx)
 	return conn
 }
 
-func (c *Conn) readPump() {
-	defer func() {
-		c.ws.Close()
-		close(c.Recv)
-	}()
-	c.ws.SetReadLimit(maxMessageSize)
-	c.ws.SetReadDeadline(time.Now().Add(pongWait))
-	c.ws.SetPongHandler(func(string) error { c.ws.SetReadDeadline(time.Now().Add(pongWait)); return nil })
-	for {
-		var message ConnMessage
-		err := c.ws.ReadJSON(&message)
-		if err != nil {
-			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway) {
-				log.Printf("error: %v", err)
-			}
-			break
-		}
-		c.Recv <- message
-	}
+func (c *Conn) Close() error {
+	c.cancel()
+	return nil
 }
 
-func (c *Conn) writePump() {
+func (c *Conn) Read(msg *ConnMessage) error {
+	if err := c.ws.ReadJSON(msg); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (c *Conn) Write(msg *ConnMessage) error {
+	c.send <- *msg
+	return nil
+}
+
+func (c *Conn) writePump(ctx context.Context) {
 	ticker := time.NewTicker(pingPeriod)
 	defer func() {
 		ticker.Stop()
-		c.ws.Close()
+		c.ws.SetWriteDeadline(time.Now().Add(writeWait))
+		c.ws.WriteMessage(websocket.CloseMessage, []byte{})
 	}()
 	for {
 		select {
-		case message, ok := <-c.Send:
+		case message, ok := <-c.send:
 			if !ok {
-				c.ws.SetWriteDeadline(time.Now().Add(writeWait))
-				c.ws.WriteMessage(websocket.CloseMessage, []byte{})
 				return
 			}
 			c.ws.SetWriteDeadline(time.Now().Add(writeWait))
 			if err := c.ws.WriteJSON(&message); err != nil {
+				log.Printf("Conn: write: %s", err)
 				return
 			}
 		case <-ticker.C:
 			c.ws.SetWriteDeadline(time.Now().Add(writeWait))
 			if err := c.ws.WriteMessage(websocket.PingMessage, []byte{}); err != nil {
+				log.Printf("Conn: ping: %s", err)
 				return
 			}
+		case <-ctx.Done():
+			return
 		}
 	}
 }

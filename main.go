@@ -6,10 +6,13 @@ import (
 	"log"
 	"math/rand"
 	"net/http"
+	_ "net/http/pprof"
 	"os"
 	"time"
 
 	"github.com/gorilla/websocket"
+	"github.com/proglottis/tvgame/game"
+	"golang.org/x/net/context"
 )
 
 var (
@@ -33,17 +36,16 @@ func main() {
 	if port == "" {
 		port = "8080"
 	}
+	ctx := context.Background()
 	csv, err := os.Open(flag.Arg(0))
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("Load CSV: %s", err)
 	}
-	repo, err := NewQuestionRepo(csv)
+	repo, err := game.NewQuestionRepo(csv)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal("Parse CSV: %s", err)
 	}
-	lobby := NewLobby(repo)
-	go lobby.Run()
-
+	server := NewServer(repo)
 	upgrader := websocket.Upgrader{
 		ReadBufferSize:  1024,
 		WriteBufferSize: 1024,
@@ -77,12 +79,17 @@ func main() {
 	}))
 
 	http.HandleFunc("/ws", withLog(func(w http.ResponseWriter, r *http.Request) {
+		ctx, cancel := context.WithCancel(ctx)
+		defer cancel()
 		conn, err := upgrader.Upgrade(w, r, nil)
 		if err != nil {
-			log.Println("Upgrade:", err)
+			log.Printf("Upgrade: %s", err)
 			return
 		}
-		lobby.Handle(NewConn(conn))
+		if err := server.Handle(ctx, NewConn(ctx, conn)); err != nil {
+			log.Printf("Server: %s", err)
+			return
+		}
 	}))
 
 	addr := ":" + port
