@@ -38,7 +38,7 @@ type Conn struct {
 func NewConn(ctx context.Context, ws *websocket.Conn) *Conn {
 	conn := &Conn{
 		ws:   ws,
-		send: make(chan ConnMessage),
+		send: make(chan ConnMessage, 500),
 	}
 	ctx, conn.cancel = context.WithCancel(ctx)
 	conn.ws.SetReadLimit(maxMessageSize)
