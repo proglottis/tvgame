@@ -23,6 +23,11 @@ $(function() {
     $answers.hide();
   }
 
+  function stopWaiting() {
+    waiting();
+    $waiting.hide();
+  }
+
   function stateJoined(action, data) {
     switch(action) {
       case "ok":
@@ -43,16 +48,19 @@ $(function() {
   function stateWaiting(action, data) {
     switch(action) {
       case "answer":
-        $waiting.hide();
+        stopWaiting();
         $answer_form.show();
         $question.show().find('h2').text(data["Data"]["Text"]);
         return stateAnswering;
       case "vote":
         // {"Type":"vote","Data":{"Text":"A phlebotomist extracts what from the human body?","Answers":["BLOOD"]}}
-        $waiting.hide();
+        stopWaiting();
         $question.show().find('h2').text(data["Data"]["Text"]);
         $answers.show().html('<li>' + data["Data"]["Answers"].join('</li><li>') + '</li>');
         return stateVoting;
+      case "results":
+        waiting();
+        break;
       default:
         appendLog("stateWaiting: " + action + ": " + JSON.stringify(data));
     }
@@ -105,6 +113,10 @@ $(function() {
 
     conn.onclose = function(event) {
       appendLog("Connection closed");
+      stopWaiting();
+      $error.show();
+      $join_form.show();
+      state = stateJoined;
     };
 
     conn.onerror = function(event) {

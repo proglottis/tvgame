@@ -100,6 +100,7 @@ type Host interface {
 type Player interface {
 	RequestAnswer(question string)
 	RequestVote(question string, answers []string)
+	Results(game *Game, results ResultSet)
 	Complete(game *Game)
 }
 
@@ -321,6 +322,9 @@ func (g *Game) broadcastVote() {
 
 func (g *Game) broadcastResults(results ResultSet) {
 	g.Host.Results(g, results)
+	for player := range g.Players {
+		player.Results(g, results)
+	}
 }
 
 func (g *Game) complete() {
@@ -356,14 +360,19 @@ func (g *Game) Collect(player Player, text string) error {
 }
 
 func (g *Game) Stop() {
-	g.collector = NonCollector{}
-	results := NewResultSet(g.Current())
-	for _, points := range results {
-		for _, offset := range points {
-			g.Players[offset.Player] += offset.Offset
+	switch g.collector.(type) {
+	case *AnswerCollector:
+		g.Vote()
+	default:
+		g.collector = NonCollector{}
+		results := NewResultSet(g.Current())
+		for _, points := range results {
+			for _, offset := range points {
+				g.Players[offset.Player] += offset.Offset
+			}
 		}
+		g.broadcastResults(results)
 	}
-	g.broadcastResults(results)
 }
 
 func (g *Game) Current() *Question {

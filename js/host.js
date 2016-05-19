@@ -23,7 +23,7 @@ $(function() {
     function showTime() {
       if ( time_remaining === 0 ) {
         this.stop();
-        conn.send(JSON.stringify({type: "vote"}));
+        conn.send(JSON.stringify({type: "stop"}));
       } else {
         time_remaining--;
         seconds.text(time_remaining);

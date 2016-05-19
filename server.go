@@ -81,14 +81,16 @@ func (s *Server) CreateRoom(ctx context.Context, conn *Conn) error {
 }
 
 func (s *Server) JoinRoom(ctx context.Context, conn *Conn, msg *JoinRequest) error {
+	player := &RoomPlayer{ID: generateCode(10), Name: game.CleanText(msg.Name), Conn: conn}
 	msg.Code = game.CleanText(msg.Code)
 	s.mu.RLock()
 	room, ok := s.rooms[msg.Code]
 	s.mu.RUnlock()
 	if !ok {
-		return fmt.Errorf("No such room: %s", msg.Code)
+		err := fmt.Errorf("No such room: %s", msg.Code)
+		player.SendError(err.Error())
+		return err
 	}
-	player := &RoomPlayer{ID: generateCode(10), Name: game.CleanText(msg.Name), Conn: conn}
 	if err := room.AddPlayer(player); err != nil {
 		player.SendError(err.Error())
 		return err

@@ -27,6 +27,7 @@ type testPlayer struct {
 
 func (testPlayer) RequestAnswer(question string)                 {}
 func (testPlayer) RequestVote(question string, answers []string) {}
+func (testPlayer) Results(game *Game, results ResultSet)         {}
 func (testPlayer) Complete(game *Game)                           {}
 
 type testHost struct{}

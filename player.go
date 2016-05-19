@@ -93,6 +93,10 @@ func (p *RoomPlayer) RequestVote(text string, answers []string) {
 	p.Conn.Write(&msg)
 }
 
+func (p *RoomPlayer) Results(game *game.Game, results game.ResultSet) {
+	p.Conn.Write(&ConnMessage{Type: "results"})
+}
+
 func (p *RoomPlayer) Complete(game *game.Game) {
 	p.Conn.Write(&ConnMessage{Type: "complete"})
 }
