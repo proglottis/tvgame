@@ -1,8 +1,7 @@
 "use strict";
 
 $(function() {
-  var $log         = $("#log"),
-      $join_form   = $('#join'),
+  var $join_form   = $('#join'),
       $error       = $('.error'),
       $waiting     = $('.waiting'),
       $question    = $('.question'),
@@ -10,7 +9,7 @@ $(function() {
       $answers     = $question.find('.answers');
 
   function appendLog(msg) {
-    $log.append($("<div>").text(msg));
+    console.log(msg);
   }
 
   var conn, state = stateJoined;
@@ -56,7 +55,7 @@ $(function() {
         // {"Type":"vote","Data":{"Text":"A phlebotomist extracts what from the human body?","Answers":["BLOOD"]}}
         stopWaiting();
         $question.show().find('h2').text(data["Data"]["Text"]);
-        $answers.show().html('<li>' + data["Data"]["Answers"].join('</li><li>') + '</li>');
+        $answers.show().html($.map(data["Data"]["Answers"], function(text){ return $('<button>').text(text).wrap('<li>'); }));
         return stateVoting;
       case "results":
         waiting();
@@ -72,6 +71,9 @@ $(function() {
       case "ok":
         waiting();
         return stateWaiting;
+      case "error":
+        $error.show().text(data["Data"]["Text"]);
+        break;
       default:
         appendLog("stateAnswering: " + action + ": " + JSON.stringify(data));
         return stateWaiting(action, data);
@@ -84,6 +86,9 @@ $(function() {
       case "ok":
         waiting();
         return stateWaiting;
+      case "error":
+        $error.show().text(data["Data"]["Text"]);
+        break;
       default:
         appendLog("stateVoting: " + action + ": " + JSON.stringify(data));
         return stateWaiting(action, data);
@@ -112,9 +117,8 @@ $(function() {
     };
 
     conn.onclose = function(event) {
-      appendLog("Connection closed");
       stopWaiting();
-      $error.show();
+      $error.show().text("Connection closed");
       $join_form.show();
       state = stateJoined;
     };
