@@ -18,10 +18,6 @@ func NewRoom(repo *game.QuestionRepo, host *Conn) *Room {
 	return &Room{game: game.New(repo, &RoomHost{Conn: host})}
 }
 
-type roomMessage struct {
-	Code string
-}
-
 func (r *Room) Host() *RoomHost {
 	return r.game.Host.(*RoomHost)
 }

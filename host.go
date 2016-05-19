@@ -123,6 +123,10 @@ func (h *RoomHost) Complete(game *game.Game) {
 	h.Conn.Write(&msg)
 }
 
+type roomMessage struct {
+	Code string
+}
+
 func (h *RoomHost) Run(ctx context.Context, room *Room, detach func()) error {
 	var err error
 	msg := ConnMessage{Type: "create"}
