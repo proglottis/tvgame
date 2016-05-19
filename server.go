@@ -76,6 +76,7 @@ func (s *Server) CreateRoom(ctx context.Context, conn *Conn) error {
 	detach := func() {
 		s.detachRoom(room.Code)
 	}
+	defer detach()
 	return room.Host().Run(ctx, room, detach)
 }
 
