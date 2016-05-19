@@ -60,6 +60,10 @@ $(function() {
       case "results":
         waiting();
         break;
+      case "complete":
+        stopWaiting();
+        $join_form.show();
+        return stateJoined;
       default:
         appendLog("stateWaiting: " + action + ": " + JSON.stringify(data));
     }
