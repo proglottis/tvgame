@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"sync"
+	"unicode/utf8"
 
 	"github.com/proglottis/tvgame/game"
 )
@@ -26,10 +27,10 @@ func (r *Room) AddPlayer(player *RoomPlayer) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	player.Name = game.CleanText(player.Name)
-	if len(player.Name) < 1 {
+	if utf8.RuneCountInString(player.Name) < 1 {
 		return errors.New("Name is too short (min 1)")
 	}
-	if len(player.Name) > 10 {
+	if utf8.RuneCountInString(player.Name) > 10 {
 		return errors.New("Name is too long (max 10)")
 	}
 	for other := range r.game.Players {

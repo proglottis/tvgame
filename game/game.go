@@ -6,6 +6,7 @@ import (
 	"io"
 	"math/rand"
 	"sort"
+	"unicode/utf8"
 )
 
 const (
@@ -193,10 +194,10 @@ func (c *AnswerCollector) Collect(player Player, text string) error {
 	}
 	var answer *Answer
 	text = CleanText(text)
-	if len(text) < 1 {
+	if utf8.RuneCountInString(text) < 1 {
 		return ErrShortAnswer
 	}
-	if len(text) > 50 {
+	if utf8.RuneCountInString(text) > 50 {
 		return ErrLongAnswer
 	}
 	for _, a := range c.Question.Answers {
