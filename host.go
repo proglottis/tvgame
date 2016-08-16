@@ -1,11 +1,11 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"log"
 
 	"github.com/proglottis/tvgame/game"
-	"golang.org/x/net/context"
 )
 
 type RoomHost struct {

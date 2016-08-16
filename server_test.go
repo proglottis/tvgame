@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -12,7 +13,6 @@ import (
 	"github.com/bitly/go-simplejson"
 	"github.com/gorilla/websocket"
 	"github.com/proglottis/tvgame/game"
-	"golang.org/x/net/context"
 )
 
 func TestServer_joining(t *testing.T) {

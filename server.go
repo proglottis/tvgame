@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -8,7 +9,6 @@ import (
 	"sync"
 
 	"github.com/proglottis/tvgame/game"
-	"golang.org/x/net/context"
 )
 
 type JoinRequest struct {

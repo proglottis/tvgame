@@ -12,7 +12,6 @@ import (
 
 	"github.com/gorilla/websocket"
 	"github.com/proglottis/tvgame/game"
-	"golang.org/x/net/context"
 )
 
 var (
@@ -36,7 +35,6 @@ func main() {
 	if port == "" {
 		port = "8080"
 	}
-	ctx := context.Background()
 	csv, err := os.Open(flag.Arg(0))
 	if err != nil {
 		log.Fatalf("Load CSV: %s", err)
@@ -79,14 +77,12 @@ func main() {
 	}))
 
 	http.HandleFunc("/ws", withLog(func(w http.ResponseWriter, r *http.Request) {
-		ctx, cancel := context.WithCancel(ctx)
-		defer cancel()
 		conn, err := upgrader.Upgrade(w, r, nil)
 		if err != nil {
 			log.Printf("Upgrade: %s", err)
 			return
 		}
-		if err := server.Handle(ctx, NewConn(ctx, conn)); err != nil {
+		if err := server.Handle(r.Context(), NewConn(r.Context(), conn)); err != nil {
 			log.Printf("Server: %s", err)
 			return
 		}

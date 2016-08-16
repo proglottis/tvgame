@@ -1,12 +1,12 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"log"
 	"time"
 
 	"github.com/gorilla/websocket"
-	"golang.org/x/net/context"
 )
 
 const (
