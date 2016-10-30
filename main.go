@@ -33,7 +33,7 @@ func withLog(fn http.HandlerFunc) http.HandlerFunc {
 
 func websocketURL(r *http.Request) template.URL {
 	scheme := "ws"
-	if r.URL.Scheme == "https" {
+	if r.TLS != nil {
 		scheme = "wss"
 	}
 	ws := &url.URL{
