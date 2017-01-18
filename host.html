@@ -9,55 +9,7 @@
     <link rel="stylesheet" type="text/css" href="css/host.css">
   </head>
   <body data-url="{{$}}">
-
-    <div class="container">
-      <article class="main">
-        <h1 class="game-title">TVGame</h1>
-
-        <form class="start">
-          <h2>Press</h2>
-          <div><button type="submit">EVERYBODY'S IN</button></div>
-          <h2>to start the game.</h2>
-        </form>
-
-        <h1 class="question" hidden></h1>
-
-        <div class="answers" hidden></div>
-
-        <table class="scoreboard" hidden>
-          <thead>
-            <tr>
-              <th>Player</th>
-              <th>Score</th>
-            </tr>
-          </thead>
-          <tbody></tbody>
-        </table>
-
-        <h1 class="place-your-vote" hidden>Place your vote</h1>
-
-        <h2 class="timer" hidden>Time Remaining: <span class="seconds"></span> seconds</h2>
-
-        <div class="join">
-          <h2>Join on your phone at tv.nothing.co.nz</h2>
-          <h2>Your room code is</h2>
-          <div class="lobby"></div>
-        </div>
-      </article>
-      <aside class="aside">
-        <ul class="players">
-          <li class="blank">login to play!</li>
-          <li class="blank">login to play!</li>
-          <li class="blank">login to play!</li>
-          <li class="blank">login to play!</li>
-          <li class="blank">login to play!</li>
-          <li class="blank">login to play!</li>
-          <li class="blank">login to play!</li>
-          <li class="blank">login to play!</li>
-        </ul>
-      </aside>
-    </div>
-
+    <script src="js/lib/phaser.min.js"></script>
     <script src="js/lib/jquery-2.2.1.min.js"></script>
     <script src="js/host.js"></script>
   </body>
