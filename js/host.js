@@ -165,4 +165,17 @@ $(function() {
     event.preventDefault();
     conn.send(JSON.stringify({type: "begin"}));
   });
+  
+  $().ready(function(){
+  });
 });
+
+
+const game = new Phaser.Game(800,600, Phaser.AUTO, '');
+game.state.add("start", new StartScene());
+game.state.start("start");
+
+function StartScene(){
+  Phaser.State.call(this);
+}
+StartScene.prototype = Object.create(Phaser.State.prototype);
