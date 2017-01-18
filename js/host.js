@@ -179,3 +179,7 @@ function StartScene(){
   Phaser.State.call(this);
 }
 StartScene.prototype = Object.create(Phaser.State.prototype);
+
+StartScene.prototype.create = function(){
+  this.start_button = new Phaser.Text(this.game, 50,50, "Everybody IN!");
+};
