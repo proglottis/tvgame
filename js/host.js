@@ -10,6 +10,13 @@ StartScene.prototype.init = function(conn) {
   this.conn = conn;
 }
 
+StartScene.prototype.preload = function() {
+  this.scale.scaleMode = Phaser.ScaleManager.RESIZE;
+  this.scale.setResizeCallback(function() {
+    this.scale.setMaximum();
+  }.bind(this));
+}
+
 StartScene.prototype.create = function(){
   console.log("StartScene");
   this.waiting = false;
