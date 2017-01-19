@@ -53,10 +53,14 @@ LobbyScene.prototype.init = function(conn, code) {
 LobbyScene.prototype.preload = function() {
   this.load.image("bg", "css/green-background.jpg");
   this.load.image('rain', 'css/rain.png');
+  this.load.audio('music', ['css/Funky Chunk.mp3']);
 }
 
 LobbyScene.prototype.create = function() {
   console.log("LobbyScene");
+
+  const music = game.add.audio('music');
+  music.play();
 
   const bg = this.add.image(0, 0, "bg");
   bg.width = this.world.width;
@@ -95,11 +99,18 @@ LobbyScene.prototype.create = function() {
   });
   tostart.alignTo(startBtn, Phaser.BOTTOM_CENTER);
 
+  const credit = this.add.text(this.world.centerX, this.world.height - 10, "Funky Chunk Kevin MacLeod (incompetech.com) Licensed under Creative Commons: By Attribution 3.0 License http://creativecommons.org/licenses/by/3.0/", {
+    font: "15pt",
+    wordWrap: true,
+    wordWrapWidth: this.world.width
+  });
+  credit.anchor.set(0.5, 1);
+
   const code = this.add.text(this.world.centerX, this.world.height - 10, this.code, {
     font: 'bold 72pt Arial',
     fill: "#F5F5DC"
   });
-  code.anchor.set(0.5, 1);
+  code.alignTo(credit, Phaser.TOP_CENTER);
 
   const instructions = this.add.text(0, 0, "Join on your phone at tv.nothing.co.nz\nYour room code is", {
     align: 'center',
