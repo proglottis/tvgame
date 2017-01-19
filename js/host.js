@@ -295,6 +295,16 @@ ScoreScene.prototype.init = function(conn, question, offsets, points) {
   this.question = question;
   this.offsets = offsets;
   this.points = points;
+  
+  this.question.Answers.sort(function(a,b) {
+    var a_votes = 0;
+    var b_votes = 0;
+    for (var i = 0; i < this.offsets.length; i++){
+      if (this.offsets[i].Answer.Text == a.Text) { a_votes = this.offsets[i].Answer.Votes.length }
+      if (this.offsets[i].Answer.Text == b.Text) { b_votes = this.offsets[i].Answer.Votes.length }
+    }
+    return b_votes - a_votes;
+  }.bind(this));
 };
 
 ScoreScene.prototype.create = function() {
@@ -303,10 +313,10 @@ ScoreScene.prototype.create = function() {
   const bg = this.add.image(0, 0, "bg");
   bg.width = this.world.width;
   bg.height = this.world.height;
-  const question = this.add.text(50,0, this.question.Text, {fill: "#ff0000", wordWrap: true, wordWrapWidth: this.world.width - 100});
+  const question = this.add.text(game.world.centerX,0, this.question.Text, {fill: "#ff0000", wordWrap: true, wordWrapWidth: this.world.width - 100});
 
-  const goodStyle = {fill: "#0000ff"};
-  const badStyle = {fill: "#ff0000"};
+  const goodStyle = {fill: "#ffd800"};
+  const badStyle = {fill: "#00a9ff"};
 
   for (var i = 0; i < this.question.Answers.length; i++) {
     const answer = this.question.Answers[i];
@@ -318,11 +328,25 @@ ScoreScene.prototype.create = function() {
         break;
       }
     }
+    var answer_text;
     if (answer.Correct) {
-      this.add.text(50, i*50+100, `${answer.Text} - ${votes} votes`, goodStyle);
+      answer_text = this.add.text(game.world.centerX, i*50+100, `${answer.Text} - ${votes} votes`, goodStyle);
     } else {
-      this.add.text(50, i*50+100, `${answer.Text} - ${votes} votes`, badStyle);
+      answer_text = this.add.text(game.world.centerX, i*50+100, `${answer.Text} - ${votes} votes`, badStyle);
     }
+    answer_text.alpha = 0;
+    answer_text.anchor.set(0.5);
+    answer_text.align = 'center';
+
+    //	Font style
+    answer_text.font = 'Arial Black';
+    answer_text.fontSize = 50;
+    answer_text.fontWeight = 'bold';
+
+    //	Stroke color and thickness
+    answer_text.stroke = '#000000';
+    answer_text.strokeThickness = 6;
+    game.add.tween(answer_text).to( { alpha: 1 }, 2000, Phaser.Easing.Linear.None, true);
   }
 
   this.timer = game.time.create(true);
