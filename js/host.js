@@ -1,6 +1,14 @@
 "use strict";
 
 const TIMEOUT = 30000;
+const QUESTION_STYLE = {
+  font: 'bold 40pt Arial',
+  fill: '#F5F5DC',
+  align: 'center',
+  stroke: '#000000',
+  strokeThickness: 6,
+  wordWrap: true,
+}
 
 function StartScene(){
   Phaser.State.call(this);
@@ -136,7 +144,7 @@ LobbyScene.prototype.update = function(event) {
 LobbyScene.prototype.onMessage = function(event) {
   switch(event.Type) {
     case "question":
-      this.state.start("lie",true,false,this.conn, event.Data.Question);
+      this.state.start("lie",true,false, this.conn, event.Data.Question);
       break;
     case "joined":
       const player = event.Data.Player;
@@ -173,7 +181,9 @@ LieScene.prototype.create = function() {
   const bg = this.add.image(0, 0, "bg");
   bg.width = this.world.width;
   bg.height = this.world.height;
-  const question = this.add.text(50,0, this.question.Text, {fill: "#ff0000", wordWrap: true, wordWrapWidth: this.world.width - 100});
+  const question = this.add.text(this.world.centerX, 10, this.question.Text, QUESTION_STYLE);
+  question.wordWrapWidth = this.world.width - 100;
+  question.anchor.set(0.5, 0);
 
   this.timer = game.time.create(true);
   this.timer.add(TIMEOUT, this.endRound, this);
@@ -236,7 +246,9 @@ VoteScene.prototype.create = function() {
   const bg = this.add.image(0, 0, "bg");
   bg.width = this.world.width;
   bg.height = this.world.height;
-  const question = this.add.text(50,0, this.question.Text, {fill: "#ff0000", wordWrap: true, wordWrapWidth: this.world.width - 100});
+  const question = this.add.text(this.world.centerX, 10, this.question.Text, QUESTION_STYLE);
+  question.wordWrapWidth = this.world.width - 100;
+  question.anchor.set(0.5, 0);
 
   for(var i = 0; i < this.question.Answers.length; i++) {
     const answer = this.question.Answers[i];
@@ -313,7 +325,10 @@ ScoreScene.prototype.create = function() {
   const bg = this.add.image(0, 0, "bg");
   bg.width = this.world.width;
   bg.height = this.world.height;
-  const question = this.add.text(game.world.centerX,0, this.question.Text, {fill: "#ff0000", wordWrap: true, wordWrapWidth: this.world.width - 100});
+  const question = this.add.text(this.world.centerX, 10, this.question.Text, QUESTION_STYLE);
+  question.wordWrapWidth = this.world.width - 100;
+  question.anchor.set(0.5, 0);
+
 
   const goodStyle = {fill: "#ffd800"};
   const badStyle = {fill: "#00a9ff"};
@@ -337,16 +352,15 @@ ScoreScene.prototype.create = function() {
     answer_text.alpha = 0;
     answer_text.anchor.set(0.5);
     answer_text.align = 'center';
-
-    //	Font style
     answer_text.font = 'Arial Black';
     answer_text.fontSize = 50;
     answer_text.fontWeight = 'bold';
-
-    //	Stroke color and thickness
     answer_text.stroke = '#000000';
     answer_text.strokeThickness = 6;
-    game.add.tween(answer_text).to( { alpha: 1 }, 2000, Phaser.Easing.Linear.None, true);
+    
+    this.timer = game.time.create(true);
+    this.timer.add(300*i,function(){ game.add.tween(answer_text).to( { alpha: 1 }, 2000, Phaser.Easing.Linear.None, true) }, this);
+    this.timer.start();
   }
 
   this.timer = game.time.create(true);
@@ -407,7 +421,7 @@ SummaryScene.prototype.update = function(event) {
 SummaryScene.prototype.onMessage = function(event) {
   switch(event.Type) {
     case "question":
-      this.state.start("lie",true,false, this.conn, event.Data.Question);
+      this.state.start("lie",true,false,this.conn, event.Data.Question);
       break;
     case "complete":
       game.state.start("end", true, false, this.conn, this.points);
