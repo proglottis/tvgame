@@ -52,6 +52,7 @@ LobbyScene.prototype.init = function(conn, code) {
 
 LobbyScene.prototype.preload = function() {
   this.load.image("bg", "css/green-background.jpg");
+  this.load.image('rain', 'css/rain.png');
 }
 
 LobbyScene.prototype.create = function() {
@@ -60,11 +61,52 @@ LobbyScene.prototype.create = function() {
   const bg = this.add.image(0, 0, "bg");
   bg.width = this.world.width;
   bg.height = this.world.height;
-  this.add.text(50,0, this.code, {fill: "#ff0000"});
 
-  const startBtn = this.add.text(50,50, "Everybody IN!", {fill: "#ff0000"});
+  var emitter = game.add.emitter(game.world.centerX, 0, 100);
+  emitter.width = game.world.width;
+  emitter.makeParticles('rain');
+  emitter.minParticleScale = 0.1;
+  emitter.maxParticleScale = 5;
+  emitter.setYSpeed(300, 500);
+  emitter.setXSpeed(0, 0);
+  emitter.minRotation = 0;
+  emitter.maxRotation = 0;
+  emitter.start(false, 1600, 5, 0);
+
+  const heading = this.add.text(this.world.centerX, 10, "TVGame", {
+    font: 'bold 72pt Arial',
+    fill: '#F5F5DC',
+  });
+  heading.anchor.set(0.5, 0);
+
+  const startBtn = this.add.text(this.world.centerX, this.world.centerY, "EVERYBODY'S IN!", {
+    fill: "#ff0000"
+  });
+  startBtn.anchor.set(0.5, 0.5);
   startBtn.inputEnabled = true;
   startBtn.events.onInputDown.add(this.listener, this);
+
+  const press = this.add.text(0,0, "Press", {
+    fill: "#F5F5DC"
+  });
+  press.alignTo(startBtn, Phaser.TOP_CENTER);
+  const tostart = this.add.text(0,0, "to start", {
+    fill: "#F5F5DC"
+  });
+  tostart.alignTo(startBtn, Phaser.BOTTOM_CENTER);
+
+  const code = this.add.text(this.world.centerX, this.world.height - 10, this.code, {
+    font: 'bold 72pt Arial',
+    fill: "#F5F5DC"
+  });
+  code.anchor.set(0.5, 1);
+
+  const instructions = this.add.text(0, 0, "Join on your phone at tv.nothing.co.nz\nYour room code is", {
+    align: 'center',
+    fill: "#F5F5DC"
+  });
+  instructions.alignTo(code, Phaser.TOP_CENTER);
+
 };
 
 LobbyScene.prototype.listener = function(){
