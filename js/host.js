@@ -181,6 +181,14 @@ LieScene.prototype.create = function() {
   question.wordWrapWidth = this.world.width - 100;
   question.anchor.set(0.5, 0);
 
+  this.last = question;
+  
+  const instructions = this.add.text(this.world.centerX, 10, "Tell your lies now", QUESTION_STYLE);
+  instructions.wordWrapWidth = this.world.width - 100;
+  instructions.alignTo(this.last, Phaser.BOTTOM_CENTER);
+  
+  this.last = question;
+  
   this.timer = game.time.create(true);
   this.timer.add(30000, this.endRound, this);
   this.timer.start();
@@ -203,7 +211,9 @@ LieScene.prototype.onMessage = function(event) {
       if(event.Data.Complete) {
         this.endRound();
       }
-      this.add.text(50, 100+this.players.length*50, event.Data.Player.Name, {fill: "#ff0000"});
+      const answer = this.add.text(50, 100+this.players.length*50, event.Data.Player.Name, {fill: "#ff0000"});
+      answer.alignTo(this.last, Phaser.BOTTOM_CENTER);
+      this.last = answer;
       break;
     case "vote":
       this.state.start("vote", true, false, this.conn, event.Data.Question);
@@ -237,10 +247,19 @@ VoteScene.prototype.create = function() {
   const question = this.add.text(this.world.centerX, 10, this.question.Text, QUESTION_STYLE);
   question.wordWrapWidth = this.world.width - 100;
   question.anchor.set(0.5, 0);
-
+  var last = question;
+  
   for(var i = 0; i < this.question.Answers.length; i++) {
-    const answer = this.question.Answers[i];
-    this.add.text(50, i*50+100, answer.Text, {fill: "#ff0000"});
+    const answer = this.add.text(50, i*50+100, this.question.Answers[i].Text, {
+      font: 'bold 28pt Arial',
+      fill: "#ff0000",
+      align: 'center',
+      stroke: '#000000',
+      strokeThickness: 6,
+      wordWrap: true,
+    });
+    answer.alignTo(last, Phaser.BOTTOM_CENTER);
+    last = answer;
   }
 
   this.timer = game.time.create(true);
@@ -315,6 +334,8 @@ ScoreScene.prototype.create = function() {
   const goodStyle = {fill: "#ffd800"};
   const badStyle = {fill: "#00a9ff"};
 
+  var last = question;
+  
   for (var i = 0; i < this.question.Answers.length; i++) {
     const answer = this.question.Answers[i];
     var votes = 0;
@@ -333,18 +354,19 @@ ScoreScene.prototype.create = function() {
     }
     answer_text.alpha = 0;
     answer_text.anchor.set(0.5);
-    answer_text.align = 'center';
     answer_text.font = 'Arial Black';
     answer_text.fontSize = 50;
     answer_text.fontWeight = 'bold';
     answer_text.stroke = '#000000';
     answer_text.strokeThickness = 6;
+    answer_text.alignTo(last, Phaser.BOTTOM_CENTER);
     
-    this.timer = game.time.create(true);
-    this.timer.add(300*i,function(){ game.add.tween(answer_text).to( { alpha: 1 }, 2000, Phaser.Easing.Linear.None, true) }, this);
-    this.timer.start();
+    game.add.tween(answer_text).to( { alpha: 1 }, 1000, Phaser.Easing.Linear.None, true );
+    
+    last = answer_text;
   }
 
+  
   this.timer = game.time.create(true);
   this.timer.add(5000, this.endRound, this);
   this.timer.start();
