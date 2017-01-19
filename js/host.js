@@ -59,8 +59,8 @@ LobbyScene.prototype.preload = function() {
 LobbyScene.prototype.create = function() {
   console.log("LobbyScene");
 
-  const music = game.add.audio('music');
-  music.play();
+  this.game.music = game.add.audio('music', 1, true);
+  this.game.music.play();
 
   const bg = this.add.image(0, 0, "bg");
   bg.width = this.world.width;
@@ -154,6 +154,7 @@ LieScene.prototype = Object.create(Phaser.State.prototype);
 
 LieScene.prototype.preload = function() {
   this.load.image("bg", "css/green-background.jpg");
+  this.load.audio("siren", ["css/Siren_Noise-KevanGC-1337458893.mp3"])
 }
 
 LieScene.prototype.init = function(conn, question) {
@@ -162,8 +163,11 @@ LieScene.prototype.init = function(conn, question) {
   this.question = question;
 };
 
+const TIMEOUT = 30000;
 LieScene.prototype.create = function() {
   console.log("LieScene");
+
+  this.siren = this.add.audio("siren");
 
   const bg = this.add.image(0, 0, "bg");
   bg.width = this.world.width;
@@ -171,7 +175,7 @@ LieScene.prototype.create = function() {
   const question = this.add.text(50,0, this.question.Text, {fill: "#ff0000", wordWrap: true, wordWrapWidth: this.world.width - 100});
 
   this.timer = game.time.create(true);
-  this.timer.add(30000, this.endRound, this);
+  this.timer.add(TIMEOUT, this.endRound, this);
   this.timer.start();
 };
 
@@ -183,6 +187,10 @@ LieScene.prototype.update = function(event) {
   var event = this.conn.get();
   if(event != null) {
     this.onMessage(event);
+  }
+
+  if(this.timer.ms > TIMEOUT - 10000 && !this.siren.isPlaying) {
+    this.siren.play();
   }
 }
 
