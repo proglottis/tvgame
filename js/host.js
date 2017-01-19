@@ -353,12 +353,73 @@ SummaryScene.prototype.update = function(event) {
 SummaryScene.prototype.onMessage = function(event) {
   switch(event.Type) {
     case "question":
-      this.state.start("lie",true,false,this.conn, event.Data.Question);
+      this.state.start("lie",true,false, this.conn, event.Data.Question);
+      break;
+    case "complete":
+      game.state.start("end", true, false, this.conn, this.points);
       break;
     default:
       console.log(event);
   }
 };
+
+function EndScene() {
+  Phaser.State.call(this);
+}
+
+EndScene.prototype = Object.create(Phaser.State.prototype);
+
+EndScene.prototype.preload = function() {
+  this.load.image("bg", "css/green-background.jpg");
+  this.load.image('rain', 'css/rain.png');
+}
+
+EndScene.prototype.init = function(conn, points) {
+  this.conn = conn;
+  this.points = points;
+  this.points.sort(function(a, b){ return b.Total - a.Total });
+};
+
+EndScene.prototype.create = function() {
+  console.log("EndScreen");
+
+  const bg = this.add.image(0, 0, "bg");
+  bg.width = this.world.width;
+  bg.height = this.world.height;
+
+  var emitter = game.add.emitter(game.world.centerX, 0, 100);
+  emitter.width = game.world.width;
+  emitter.makeParticles('rain');
+  emitter.minParticleScale = 0.1;
+  emitter.maxParticleScale = 5;
+  emitter.setYSpeed(300, 500);
+  emitter.setXSpeed(0, 0);
+  emitter.minRotation = 0;
+  emitter.maxRotation = 0;
+  emitter.start(false, 1600, 5, 0);
+
+  const title = this.add.text(this.world.centerX, 0, "Winners!", {
+    font: "bold 72pt Arial",
+    fill: '#F5F5DC',
+  });
+  title.anchor.set(0.5, 0);
+
+  var max = this.points.length;
+  if (max > 3) {
+    max = 3;
+  }
+  var last = title;
+  for (var i = 0; i < max; i++) {
+    const player = this.points[i].Player.Name;
+    const total = this.points[i].Total;
+    const row = this.add.text(0, 0, `${player} ${total}`, {
+      font: "bold 40pt Arial",
+      fill: '#F5F5DC',
+    });
+    row.alignTo(last, Phaser.BOTTOM_CENTER);
+    last = row;
+  }
+}
 
 function Conn(url) {
   this.conn = new WebSocket(url);
@@ -393,4 +454,5 @@ game.state.add("lie", new LieScene());
 game.state.add("vote", new VoteScene());
 game.state.add("score", new ScoreScene());
 game.state.add("summary", new SummaryScene());
+game.state.add("end", new EndScene());
 game.state.start("start", true, false, conn);
