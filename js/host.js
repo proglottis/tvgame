@@ -178,19 +178,23 @@ StartScene.prototype.init = function(conn) {
 
 StartScene.prototype.create = function(){
   console.log("StartScene");
+  this.waiting = false;
 };
 
-StartScene.prototype.onConnection = function() {
-  this.conn.send(JSON.stringify({type: "create"}));
-}
-
-StartScene.prototype.onMessage = function(event) {
-  switch(event.Type) {
-    case "create":
-      this.state.start("lobby", true, false, this.conn, event.Data.Code);
-      break;
-    default:
-      console.log(event);
+StartScene.prototype.update = function(event) {
+  if(this.conn.open && !this.waiting) {
+    this.conn.send(JSON.stringify({type: "create"}));
+    this.waiting = true;
+  }
+  var event = this.conn.get();
+  if(event != null) {
+    switch(event.Type) {
+      case "create":
+        this.state.start("lobby", true, false, this.conn, event.Data.Code);
+        break;
+      default:
+        console.log(event);
+    }
   }
 }
 
@@ -224,6 +228,13 @@ LobbyScene.prototype.create = function() {
 LobbyScene.prototype.listener = function(){
   this.conn.send(JSON.stringify({type: "begin"}));
 };
+
+LobbyScene.prototype.update = function(event) {
+  var event = this.conn.get();
+  if(event != null) {
+    this.onMessage(event);
+  }
+}
 
 LobbyScene.prototype.onMessage = function(event) {
   switch(event.Type) {
@@ -271,6 +282,13 @@ LieScene.prototype.create = function() {
 
 LieScene.prototype.endRound = function(){
   conn.send(JSON.stringify({type: "stop"}));
+}
+
+LieScene.prototype.update = function(event) {
+  var event = this.conn.get();
+  if(event != null) {
+    this.onMessage(event);
+  }
 }
 
 LieScene.prototype.onMessage = function(event) {
@@ -326,6 +344,13 @@ VoteScene.prototype.endRound = function(){
   conn.send(JSON.stringify({type: "stop"}));
 }
 
+VoteScene.prototype.update = function(event) {
+  var event = this.conn.get();
+  if(event != null) {
+    this.onMessage(event);
+  }
+}
+
 VoteScene.prototype.onMessage = function(event) {
   switch(event.Type) {
     case "collected":
@@ -369,25 +394,83 @@ ScoreScene.prototype.create = function() {
   const goodStyle = {fill: "#0000ff"};
   const badStyle = {fill: "#ff0000"};
 
-  for(var i = 0; i < this.offsets.length; i++) {
-    const answer = this.offsets[i].Answer;
+  for (var i = 0; i < this.question.Answers.length; i++) {
+    const answer = this.question.Answers[i];
+    var votes = 0;
+    for(var j = 0; j < this.offsets.length; j++) {
+      const offset = this.offsets[j];
+      if(offset.Answer.Text === answer.Text) {
+        votes = offset.Answer.Votes.length;
+        break;
+      }
+    }
     if (answer.Correct) {
-      this.add.text(50, i*50+100, `${answer.Text} - ${answer.Votes.length} votes`, goodStyle);
+      this.add.text(50, i*50+100, `${answer.Text} - ${votes} votes`, goodStyle);
     } else {
-      this.add.text(50, i*50+100, `${answer.Text} - ${answer.Votes.length} votes`, badStyle);
+      this.add.text(50, i*50+100, `${answer.Text} - ${votes} votes`, badStyle);
     }
   }
 
   this.timer = game.time.create(true);
-  this.timer.add(30000, this.endRound, this);
+  this.timer.add(5000, this.endRound, this);
   this.timer.start();
 };
 
 ScoreScene.prototype.endRound = function(){
+  this.state.start("summary", true, false, this.conn, this.points);
 }
 
-ScoreScene.prototype.onMessage = function(event) {
+function SummaryScene() {
+  Phaser.State.call(this);
+}
+
+SummaryScene.prototype = Object.create(Phaser.State.prototype);
+
+SummaryScene.prototype.preload = function() {
+  this.load.image("bg", "css/green-background.jpg");
+}
+
+SummaryScene.prototype.init = function(conn, points) {
+  this.conn = conn;
+  this.points = points;
+  this.points.sort(function(a, b){ return b.Total - a.Total });
+};
+
+SummaryScene.prototype.create = function() {
+  console.log("SummaryScene");
+
+  const bg = this.add.image(0, 0, "bg");
+  bg.width = this.world.width;
+  bg.height = this.world.height;
+  this.add.text(50, 50, "Total Scores:");
+  
+  for (var i = 0; i < this.points.length; i++) {
+    const player = this.points[i].Player.Name;
+    const total = this.points[i].Total;
+    this.add.text(50, i*50+100, `${player}: ${total} points`);
+  }
+  
+  this.timer = game.time.create(true);
+  this.timer.add(4000, this.endRound, this);
+  this.timer.start();
+};
+
+SummaryScene.prototype.endRound = function(){
+  conn.send(JSON.stringify({type: "next"}));
+}
+
+SummaryScene.prototype.update = function(event) {
+  var event = this.conn.get();
+  if(event != null) {
+    this.onMessage(event);
+  }
+}
+
+SummaryScene.prototype.onMessage = function(event) {
   switch(event.Type) {
+    case "question":
+      this.state.start("lie",true,false,this.conn, event.Data.Question);
+      break;
     default:
       console.log(event);
   }
@@ -399,17 +482,34 @@ game.state.add("lobby", new LobbyScene());
 game.state.add("lie", new LieScene());
 game.state.add("vote", new VoteScene());
 game.state.add("score", new ScoreScene());
+game.state.add("summary", new SummaryScene());
 
-const conn = new WebSocket($('body').data('url'));
-conn.onopen = function(event) {
-  const state = game.state.getCurrentState();
-  state.onConnection.call(state);
-};
-conn.onmessage = function(event) {
-  const state = game.state.getCurrentState();
-  const msg = JSON.parse(event.data);
-  console.log(msg.Type);
-  state.onMessage.call(state, msg);
-};
+
+function Conn(url) {
+  this.conn = new WebSocket(url);
+  this.pending = [];
+  this.open = false;
+
+  this.conn.onmessage = this.onMessage.bind(this);
+  this.conn.onopen = this.onConnection.bind(this);
+}
+
+Conn.prototype.onConnection = function() {
+  this.open = true;
+}
+
+Conn.prototype.onMessage = function(event) {
+  this.pending.push(JSON.parse(event.data));
+}
+
+Conn.prototype.get = function() {
+  return this.pending.shift();
+}
+
+Conn.prototype.send = function(event) {
+  this.conn.send(event);
+}
+
+const conn = new Conn($('body').data('url'));
 
 game.state.start("start", true, false, conn);
