@@ -183,7 +183,14 @@ LieScene.prototype.create = function() {
 
   this.last = question;
   
-  const instructions = this.add.text(this.world.centerX, 10, "Tell your lies now", QUESTION_STYLE);
+  const instructions = this.add.text(this.world.centerX, 10, "Tell your lies now:", {
+    font: 'bold 28pt Arial',
+    fill: '#F5F5DC',
+    align: 'center',
+    stroke: '#000000',
+    strokeThickness: 6,
+    wordWrap: true,
+  });
   instructions.wordWrapWidth = this.world.width - 100;
   instructions.alignTo(this.last, Phaser.BOTTOM_CENTER);
   
@@ -211,7 +218,7 @@ LieScene.prototype.onMessage = function(event) {
       if(event.Data.Complete) {
         this.endRound();
       }
-      const answer = this.add.text(50, 100+this.players.length*50, event.Data.Player.Name, {fill: "#ff0000"});
+      const answer = this.add.text(50, 100+this.players.length*50, "${this.players.length+1}. ${event.Data.Player.Name}", {fill: "#ff0000"});
       answer.alignTo(this.last, Phaser.BOTTOM_CENTER);
       this.last = answer;
       break;
@@ -310,12 +317,17 @@ ScoreScene.prototype.init = function(conn, question, offsets, points) {
   this.points = points;
   
   this.question.Answers.sort(function(a,b) {
+    if (!this.offsets){
+      return 0;
+    }
+    
     var a_votes = 0;
     var b_votes = 0;
     for (var i = 0; i < this.offsets.length; i++){
       if (this.offsets[i].Answer.Text == a.Text) { a_votes = this.offsets[i].Answer.Votes.length }
       if (this.offsets[i].Answer.Text == b.Text) { b_votes = this.offsets[i].Answer.Votes.length }
     }
+
     return b_votes - a_votes;
   }.bind(this));
 };
@@ -398,12 +410,30 @@ SummaryScene.prototype.create = function() {
   const bg = this.add.image(0, 0, "bg");
   bg.width = this.world.width;
   bg.height = this.world.height;
-  this.add.text(50, 50, "Total Scores:");
+  const title = this.add.text(this.world.centerX, 10, "Total Scores:", QUESTION_STYLE);
+  title.anchor.set(0.5, 0);
+  
+  var last = title;
   
   for (var i = 0; i < this.points.length; i++) {
     const player = this.points[i].Player.Name;
     const total = this.points[i].Total;
-    this.add.text(50, i*50+100, `${player}: ${total} points`);
+    var fill = "#ff0000";
+    if (i === 0) { fill = "#ffd700" }
+    else if (i === 1) { fill = "#c0c0c0" }
+    else if (i === 2) { fill = "#cd7f32" }
+    
+    const score = this.add.text(50, i*50+100, `${player}: ${total} points`, {
+      font: 'bold 28pt Arial',
+      fill: fill,
+      align: 'center',
+      stroke: '#000000',
+      strokeThickness: 6,
+    });
+    
+    score.alignTo(last, Phaser.BOTTOM_CENTER);
+    
+    last = score;
   }
   
   this.timer = game.time.create(true);
