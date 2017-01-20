@@ -1,5 +1,7 @@
 "use strict";
 
+const TIMEOUT = 30000;
+
 function StartScene(){
   Phaser.State.call(this);
 }
@@ -163,11 +165,10 @@ LieScene.prototype.init = function(conn, question) {
   this.question = question;
 };
 
-const TIMEOUT = 30000;
 LieScene.prototype.create = function() {
   console.log("LieScene");
 
-  this.siren = this.add.audio("siren");
+  this.siren = this.add.audio("siren", 0.2);
 
   const bg = this.add.image(0, 0, "bg");
   bg.width = this.world.width;
@@ -176,6 +177,7 @@ LieScene.prototype.create = function() {
 
   this.timer = game.time.create(true);
   this.timer.add(TIMEOUT, this.endRound, this);
+  this.timer.add(TIMEOUT - 5000, this.startSiren, this);
   this.timer.start();
 };
 
@@ -183,14 +185,14 @@ LieScene.prototype.endRound = function(){
   conn.send(JSON.stringify({type: "stop"}));
 }
 
+LieScene.prototype.startSiren = function(){
+    this.siren.play();
+}
+
 LieScene.prototype.update = function(event) {
   var event = this.conn.get();
   if(event != null) {
     this.onMessage(event);
-  }
-
-  if(this.timer.ms > TIMEOUT - 10000 && !this.siren.isPlaying) {
-    this.siren.play();
   }
 }
 
@@ -203,6 +205,7 @@ LieScene.prototype.onMessage = function(event) {
       this.add.text(50, 100+this.players.length*50, event.Data.Player.Name, {fill: "#ff0000"});
       break;
     case "vote":
+      this.siren.stop();
       this.state.start("vote", true, false, this.conn, event.Data.Question);
       break;
     default:
@@ -228,6 +231,8 @@ VoteScene.prototype.init = function(conn, question) {
 VoteScene.prototype.create = function() {
   console.log("VoteScene");
 
+  this.siren = this.add.audio("siren", 0.2);
+
   const bg = this.add.image(0, 0, "bg");
   bg.width = this.world.width;
   bg.height = this.world.height;
@@ -239,12 +244,17 @@ VoteScene.prototype.create = function() {
   }
 
   this.timer = game.time.create(true);
-  this.timer.add(30000, this.endRound, this);
+  this.timer.add(TIMEOUT, this.endRound, this);
+  this.timer.add(TIMEOUT - 5000, this.startSiren, this);
   this.timer.start();
 };
 
 VoteScene.prototype.endRound = function(){
   conn.send(JSON.stringify({type: "stop"}));
+}
+
+VoteScene.prototype.startSiren = function(){
+    this.siren.play();
 }
 
 VoteScene.prototype.update = function(event) {
@@ -262,6 +272,7 @@ VoteScene.prototype.onMessage = function(event) {
       }
       break;
     case "results":
+      this.siren.stop();
       this.state.start("score", true, false, this.conn, this.question, event.Data.Offsets, event.Data.Points);
       break;
     default:
