@@ -263,7 +263,6 @@ VoteScene.prototype.create = function() {
       align: 'center',
       stroke: '#000000',
       strokeThickness: 6,
-      wordWrap: true,
     });
     answer.alignTo(last, Phaser.BOTTOM_CENTER);
     last = answer;
@@ -411,6 +410,7 @@ SummaryScene.prototype.create = function() {
   bg.width = this.world.width;
   bg.height = this.world.height;
   const title = this.add.text(this.world.centerX, 10, "Total Scores:", QUESTION_STYLE);
+  title.wordWrapWidth = this.world.width - 100;
   title.anchor.set(0.5, 0);
   
   var last = title;
