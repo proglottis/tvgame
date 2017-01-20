@@ -227,7 +227,13 @@ LieScene.prototype.onMessage = function(event) {
       if(event.Data.Complete) {
         this.endRound();
       }
-      const answer = this.add.text(50, 100+this.players.length*50, event.Data.Player.Name, {fill: "#ff0000"});
+      const answer = this.add.text(50, 100+this.players.length*50, event.Data.Player.Name, {
+        font: 'bold 28pt Arial',
+        fill: "#ff0000",
+        align: 'center',
+        stroke: '#000000',
+        strokeThickness: 6,
+      });
       answer.alignTo(this.last, Phaser.BOTTOM_CENTER,0,20);
       this.last = answer;
       break;
