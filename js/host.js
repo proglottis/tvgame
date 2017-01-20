@@ -198,7 +198,7 @@ LieScene.prototype.create = function() {
   instructions.wordWrapWidth = this.world.width - 100;
   instructions.alignTo(this.last, Phaser.BOTTOM_CENTER);
   
-  this.last = question;
+  this.last = instructions;
   
   this.timer = game.time.create(true);
   this.timer.add(TIMEOUT, this.endRound, this);
@@ -227,8 +227,8 @@ LieScene.prototype.onMessage = function(event) {
       if(event.Data.Complete) {
         this.endRound();
       }
-      const answer = this.add.text(50, 100+this.players.length*50, "${this.players.length+1}. ${event.Data.Player.Name}", {fill: "#ff0000"});
-      answer.alignTo(this.last, Phaser.BOTTOM_CENTER);
+      const answer = this.add.text(50, 100+this.players.length*50, event.Data.Player.Name, {fill: "#ff0000"});
+      answer.alignTo(this.last, Phaser.BOTTOM_CENTER,0,20);
       this.last = answer;
       break;
     case "vote":
